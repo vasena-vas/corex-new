@@ -4,3 +4,6 @@
 node_modules/
 .DS_Store
 .claude/settings.local.json
+
+# Папка выкладки: собирается из корня, в репозитории не хранится
+site/

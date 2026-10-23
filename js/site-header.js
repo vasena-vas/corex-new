@@ -58,12 +58,91 @@
   var scrimOn = null;
 
   function syncScrim() {
-    var on = (window.pageYOffset || document.documentElement.scrollTop || 0) > SCRIM_AT;
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    syncDock(y);
+    var on = y > SCRIM_AT;
     if (on === scrimOn) {
       return;
     }
     scrimOn = on;
     header.classList.toggle('site-header--scrim', on);
+  }
+
+  /* ==========================================================
+     Нижняя плавающая кнопка — только телефон (docs/mobile-spec.md §5).
+
+     Показывается, когда хиро закончилось, и прячется, как только в зоне
+     видимости появляется форма заявки: перекрывать собственную цель
+     кнопка не должна. Футер отдельно не наблюдаем — он внутри той же
+     секции #contacts, что и форма.
+
+     Наблюдателей два, а не один обработчик скролла: обе границы —
+     событийные («хиро ушло», «заявка пришла»), и IntersectionObserver
+     будит колбэк только на них, а не на каждом кадре.
+
+     Класс hidden снимается здесь же: без JS кнопка не появится, и это
+     верно — показывать её умеет только он.
+     ========================================================== */
+  var dock = document.getElementById('cta-dock');
+  var afterHero = document.getElementById('hero-stats');
+  var target = document.getElementById('contacts');
+  var dockReady = false;
+  var atForm = false;
+  var afterHeroTop = 0;
+
+  /* «Хиро закончилось» считается из прокрутки, а не наблюдателем.
+
+     Наблюдатель здесь не годится принципиально: он будит колбэк только
+     на смене состояния пересечения. Если попасть ниже хиро, не пройдя
+     через него, — перезагрузка с восстановленной позицией, переход по
+     якорю, — сторожевая секция так ни разу и не пересечётся с экраном,
+     смены состояния не будет, и кнопка не появится вовсе. То же самое
+     на стыке секций, где касание краями ещё считается пересечением.
+
+     Чтения раскладки в обработчике скролла нет: граница замеряется один
+     раз и кэшируется, дальше сравнивается одно число с pageYOffset.
+     Пересчёт — на load и при смене ширины окна (высота хиро зависит от
+     зафиксированной высоты пина, js/hero-panorama.js). */
+  function measureDock() {
+    if (!afterHero) {
+      return;
+    }
+    afterHeroTop = afterHero.getBoundingClientRect().top + (window.pageYOffset || 0);
+  }
+
+  function syncDock(y) {
+    if (!dockReady) {
+      return;
+    }
+    var pastHero = y + window.innerHeight > afterHeroTop;
+    dock.classList.toggle('is-on', pastHero && !atForm);
+  }
+
+  if (dock && afterHero && target) {
+    dock.hidden = false;
+    dockReady = true;
+    measureDock();
+
+    window.addEventListener('load', measureDock);
+    var dockResizeW = window.innerWidth;
+    window.addEventListener('resize', function () {
+      /* Появление и скрытие адресной строки шлёт resize с той же
+         шириной — на нём пересчитывать нечего. */
+      if (window.innerWidth === dockResizeW) {
+        return;
+      }
+      dockResizeW = window.innerWidth;
+      measureDock();
+    }, { passive: true });
+
+    /* Форму наблюдаем: она высокая, и её появление на экране — как раз
+       та смена состояния, которую наблюдатель ловит надёжно. */
+    if (typeof IntersectionObserver === 'function') {
+      new IntersectionObserver(function (entries) {
+        atForm = entries[0].isIntersecting;
+        syncDock(window.pageYOffset || document.documentElement.scrollTop || 0);
+      }, { threshold: 0 }).observe(target);
+    }
   }
 
   syncScrim();

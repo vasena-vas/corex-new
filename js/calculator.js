@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — калькулятор полной стоимости партии на складе.
+  COREX — калькулятор полной стоимости партии на складе.
   Владеет: состоянием блока #calculator (id="cc-*") и расчётом разбивки
   стоимости в реальном времени — товар, логистика, пошлина, НДС, оформление.
   Логика расчёта перенесена без изменений из docs/corex-calc_4.html
@@ -112,28 +112,58 @@
     rateEl.textContent = 'курс ' + USD.toFixed(2).replace('.', ',') + ' ₽/$';
   }
 
+  /* Категория выбирается двумя органами управления сразу: плашками
+     (десктоп) и нативным списком (телефон, docs/mobile-spec.md §7).
+     Показывает нужный CSS по брейкпоинту, но состояние у них общее —
+     поэтому выбор сведён в одну функцию, а не продублирован в двух
+     обработчиках. Нативный список на телефоне выигрывает у семи плашек
+     по высоте и открывается системным колесом, к которому рука уже
+     приучена. */
   var chipsEl = $('cc-chips');
+  var catSelect = $('cc-cat-select');
+
+  function selectCat(i, focusCustom) {
+    cat = i;
+    Array.prototype.slice.call(chipsEl.children).forEach(function (x, j) {
+      x.classList.toggle('is-on', j === i);
+    });
+    if (catSelect && catSelect.selectedIndex !== i) {
+      catSelect.selectedIndex = i;
+    }
+    var isCustom = CATS[i][1] === null;
+    $('cc-custom').classList.toggle('is-open', isCustom);
+    if (isCustom && focusCustom) {
+      window.setTimeout(function () {
+        $('cc-cname').focus();
+      }, 120);
+    }
+    update();
+  }
+
   CATS.forEach(function (c, i) {
     var b = document.createElement('button');
     b.className = 'cc-calc__chip' + (i === 0 ? ' is-on' : '');
     b.type = 'button';
     b.textContent = c[0];
     b.addEventListener('click', function () {
-      cat = i;
-      Array.prototype.slice.call(chipsEl.children).forEach(function (x, j) {
-        x.classList.toggle('is-on', j === i);
-      });
-      var isCustom = CATS[i][1] === null;
-      $('cc-custom').classList.toggle('is-open', isCustom);
-      if (isCustom) {
-        window.setTimeout(function () {
-          $('cc-cname').focus();
-        }, 120);
-      }
-      update();
+      selectCat(i, true);
     });
     chipsEl.appendChild(b);
+
+    if (catSelect) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = c[0];
+      catSelect.appendChild(o);
+    }
   });
+
+  if (catSelect) {
+    catSelect.selectedIndex = 0;
+    catSelect.addEventListener('change', function () {
+      selectCat(catSelect.selectedIndex, true);
+    });
+  }
 
   var bar = $('cc-bar');
   var rowsEl = $('cc-rows');

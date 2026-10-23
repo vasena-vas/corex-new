@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — финальная контактная форма.
+  COREX — финальная контактная форма.
   Владеет: валидацией и псевдо-отправкой формы #contact-form.
   Выставляет: обработчик сабмита, состояние отправки в #contact-form-status.
   Прячет: то, что реального бэкенда нет — это единственная зона ответственности
@@ -104,13 +104,14 @@
       name: validation.name,
       contact: validation.contact,
       product: validation.product,
+      need: form.elements.need ? form.elements.need.value : '',
       link: form.elements.link ? form.elements.link.value.trim() : '',
       submittedAt: new Date().toISOString()
     };
 
     // TODO: подключить реальный endpoint (CRM/почта/Telegram-бот).
     // Пока заявка нигде не сохраняется — только логируется в консоль.
-    console.log('[Corex-Trade] Новая заявка (черновой приём, без бэкенда):', payload);
+    console.log('[COREX] Новая заявка (черновой приём, без бэкенда):', payload);
 
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

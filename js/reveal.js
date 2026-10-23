@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — система появления для всех секций ниже Hero
+  COREX — система появления для всех секций ниже Hero
   (docs/motion-spec.md, часть 1 и 3). Не зависит от GSAP — работает,
   даже если CDN с GSAP не загрузился (как js/hero-panorama.js).
 
@@ -99,10 +99,14 @@
 
   /* will-change ставится на время самого появления и снимается сразу
      после него (docs/motion-spec.md, правило про разовость приёма):
-     .reveal анимирует в том числе filter: blur, и без подготовки слоя
-     браузер перерисовывает элемент на каждом кадре перехода. Держать
-     will-change постоянно нельзя — это удержанный слой на каждый
-     появившийся элемент страницы, что само по себе тормозит скролл. */
+     .reveal анимирует opacity и transform; will-change поднимает элемент
+     в свой слой на время перехода, чтобы проявление не перерисовывало
+     его каждый кадр. Держать will-change постоянно нельзя — это
+     удержанный слой на каждый появившийся элемент страницы, что само по
+     себе тормозит скролл. filter из подсказки убран вместе с самим
+     blur: он снят с .reveal (css/styles.css §1.1) — просить браузер
+     готовить слой под свойство, которое не анимируется, значит платить
+     за композитный слой впустую. */
   var REVEAL_MS = 1600; // запас над --duration-reveal + --d; страховка, если transitionend не придёт
 
   function clearHint(el) {
@@ -110,7 +114,7 @@
   }
 
   function playReveal(el) {
-    el.style.willChange = 'opacity, transform, filter';
+    el.style.willChange = 'opacity, transform';
     el.classList.add('in');
 
     var timer = setTimeout(function () {
@@ -139,7 +143,10 @@
         }
       });
     },
-    { threshold: 0.18 }
+    /* docs/mobile-spec.md §3: до 900px порог 0.1, а не 0.18. На коротком
+       экране высокий блок может не набрать 18% собственной высоты во
+       вьюпорте вообще никогда — и тогда он просто не появится. */
+    { threshold: window.matchMedia('(max-width: 899.98px)').matches ? 0.1 : 0.18 }
   );
   revealEls.forEach(function (el) {
     io.observe(el);

@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — аккордеон «Вопросы».
+  COREX — аккордеон «Вопросы».
 
   Нативный <details>/<summary> остаётся источником состояния (open,
   доступность с клавиатуры и для скринридеров — бесплатно от браузера).
@@ -76,7 +76,8 @@
       content.addEventListener('transitionend', onTransitionEnd);
       // Подстраховка: если transitionend не пришёл (например, элемент был
       // уже схлопнут при prefers-reduced-motion и браузер его не шлёт).
-      window.setTimeout(finish, 500);
+      // Запас над --duration-accordion (280ms).
+      window.setTimeout(finish, 420);
     }
   });
 })();

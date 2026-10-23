@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Corex-Trade — блок «Без нас»</title>
+<title>COREX — блок «Без нас»</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -108,7 +108,7 @@ h2{margin:0;font-size:clamp(32px,4.8vw,60px);line-height:1.03;letter-spacing:-.0
         <div class="seg hint" id="seg">
           <span class="seg-ind"></span>
           <button class="sg on" id="swA" type="button">Как обычно</button>
-          <button class="sg" id="swB" type="button">С Corex-Trade</button>
+          <button class="sg" id="swB" type="button">С COREX</button>
         </div>
       </div>
       <svg id="svg" viewBox="0 0 620 470" xmlns="http://www.w3.org/2000/svg" aria-label="Схема связей">
@@ -177,7 +177,7 @@ function chip(label,kind){
   g.appendChild(t); gN.appendChild(g);
   g.__w=w; return g;
 }
-const youEl=chip('Вы','you'), corexEl=chip('Corex-Trade','corex');
+const youEl=chip('Вы','you'), corexEl=chip('COREX','corex');
 const nodeEls=NODES.map(n=>chip(n[0],'n'));
 
 const pathsA=LINKS_A.map((lk,i)=>{
@@ -232,7 +232,7 @@ function go(to){
   seg.classList.toggle('b',to===1); seg.classList.remove('hint');
   document.getElementById('swA').classList.toggle('on',to===0);
   document.getElementById('swB').classList.toggle('on',to===1);
-  document.getElementById('mode').textContent = to===1?'с Corex-Trade':'как обычно';
+  document.getElementById('mode').textContent = to===1?'с COREX':'как обычно';
   sec.classList.toggle('b',to===1); tally.classList.toggle('b',to===1);
   document.getElementById('tn').textContent = to===1?'1':'7';
   document.getElementById('tt').textContent = to===1

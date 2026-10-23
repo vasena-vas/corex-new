@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — вёрстка и компоненты.
+  COREX — вёрстка и компоненты.
   Источник всех значений — css/tokens.css. Ничего не хардкодится в обход
   токенов (ни hex, ни px для цвета/радиуса/тени/тайминга).
   Анимации (GSAP/ScrollTrigger) здесь не пишутся — только статичная
@@ -144,6 +144,50 @@ h1, h2, h3, h4, h5 {
   max-width: var(--layout-max-width-narrow);
 }
 
+/* docs/mobile-spec.md §2 — длинные слова.
+
+   `break-word` на корпусе — общая страховка: переносит там, где строка
+   иначе вылезла бы за контейнер, но не влияет на min-content и потому
+   не ломает сетки. `anywhere` точечно — там, где неразрывная строка
+   заведомо длиннее узкой колонки: почта, телефон, внешние ссылки. */
+body {
+  overflow-wrap: break-word;
+}
+
+a[href^="mailto:"],
+a[href^="tel:"],
+a[href^="http"] {
+  overflow-wrap: anywhere;
+}
+
+/* docs/mobile-spec.md §2 — поля ввода не меньше 16px, иначе iOS зумит
+   страницу при фокусе и обратно уже не отматывает.
+
+   Порог, а не фиксированный размер: собственный кегль поля сохраняется,
+   `max()` только не даёт ему опуститься ниже 16px. Правило не
+   декоративное — `--font-size-body` это 17px * --user-font-scale, а
+   ползунок «Размер текста» в панели оформления опускает масштаб до 0.85,
+   то есть до 14.5px.
+
+   Порог только до 900px: на десктопе зума при фокусе нет, и ограничивать
+   там ползунок оформления незачем. Парные правила с той же специфичностью
+   стоят у .form-field и .cc-calc__input — при равной специфичности
+   выигрывает то, что ниже по файлу. */
+@media (max-width: 899.98px) {
+  input,
+  textarea,
+  select {
+    font-size: max(1rem, var(--font-size-body));
+  }
+
+  /* §2: зона нажатия не меньше 44px. Мелкая кнопка набирала 42px из
+     8px полей и высоты строки — двух пикселей не хватало ровно всем
+     шести кнопкам «Рассчитать» в услугах и кнопке в шапке. */
+  .btn--sm {
+    min-height: 44px;
+  }
+}
+
 .eyebrow {
   display: inline-block;
   font-size: var(--font-size-caption);
@@ -188,20 +232,23 @@ h1, h2, h3, h4, h5 {
    обрезки, а не расфокус. Один и тот же .in триггерит оба.
    ========================================================== */
 
+/* filter: blur здесь был и снят. .reveal висит на крупных блоках и
+   карточках — блок секции целиком, карточки услуг, панели. Расфокус на
+   такой площади заставляет браузер перерисовывать весь элемент каждый
+   кадр перехода, и в замере прокрутки это была самая дорогая строка
+   после скриптов. Расфокус оставлен только на заголовочной группе —
+   там площадь в строку текста. Подъём и проявление читаются и без него. */
 .reveal {
   opacity: 0;
   transform: translateY(var(--reveal-rise));
-  filter: blur(var(--reveal-blur));
   transition: opacity var(--duration-reveal) var(--ease-out-soft),
-    transform var(--duration-reveal) var(--ease-out-soft),
-    filter var(--duration-reveal) var(--ease-out-soft);
+    transform var(--duration-reveal) var(--ease-out-soft);
   transition-delay: var(--d, 0ms);
 }
 
 .reveal.in {
   opacity: 1;
   transform: none;
-  filter: blur(0);
 }
 
 /* Обёртка заголовочной группы сама остаётся видимой — .reveal здесь только
@@ -298,10 +345,21 @@ h1, h2, h3, h4, h5 {
   color: var(--color-white);
 }
 
-.btn--cta:hover,
+/* docs/mobile-spec.md §2 — ховеры только внутри @media (hover: hover).
+   На телефоне тап оставляет :hover висеть на элементе до следующего
+   касания в другом месте — кнопка выглядит нажатой уже после перехода.
+   :focus-visible из-под медиазапроса вынесен сознательно: клавиатурный
+   фокус обязан работать на любом устройстве, включая планшет с тачем. */
 .btn--cta:focus-visible {
   background: var(--color-accent-cta-hover);
   box-shadow: var(--shadow-glow-accent);
+}
+
+@media (hover: hover) {
+  .btn--cta:hover {
+    background: var(--color-accent-cta-hover);
+    box-shadow: var(--shadow-glow-accent);
+  }
 }
 
 .btn--cta:active {
@@ -314,10 +372,16 @@ h1, h2, h3, h4, h5 {
   border: 1px solid var(--color-border-on-dark-strong);
 }
 
-.btn--ghost-on-dark:hover,
 .btn--ghost-on-dark:focus-visible {
   background: var(--color-glass-bg-on-dark);
   border-color: var(--color-text-on-dark);
+}
+
+@media (hover: hover) {
+  .btn--ghost-on-dark:hover {
+    background: var(--color-glass-bg-on-dark);
+    border-color: var(--color-text-on-dark);
+  }
 }
 
 .btn--outline {
@@ -326,10 +390,16 @@ h1, h2, h3, h4, h5 {
   border: 1px solid var(--color-border-on-light-strong);
 }
 
-.btn--outline:hover,
 .btn--outline:focus-visible {
   border-color: var(--color-accent-primary);
   background: var(--color-bg-light-alt);
+}
+
+@media (hover: hover) {
+  .btn--outline:hover {
+    border-color: var(--color-accent-primary);
+    background: var(--color-bg-light-alt);
+  }
 }
 
 .btn:disabled {
@@ -345,8 +415,11 @@ h1, h2, h3, h4, h5 {
 .glass-panel {
   background: var(--color-glass-bg-on-dark);
   border: 1px solid var(--color-glass-border-on-dark);
-  backdrop-filter: var(--blur-glass) var(--saturate-glass);
-  -webkit-backdrop-filter: var(--blur-glass) var(--saturate-glass);
+  /* backdrop-filter снят: панель лежит на ровном тёмном фоне секции,
+     размывать там нечего, а слой размытия заставляет браузер держать
+     копию подложки и пересобирать её при каждом изменении под ней.
+     Единственный оставшийся backdrop-filter на сайте — у шапки, где он
+     действительно размывает уезжающий под неё контент. */
   box-shadow: var(--shadow-glass-on-dark), var(--shadow-glass-inset-highlight);
   border-radius: var(--radius-xl);
   color: var(--color-text-on-dark);
@@ -460,10 +533,16 @@ h1, h2, h3, h4, h5 {
               opacity var(--duration-hover-out) var(--ease-soft);
 }
 
-.site-header__nav a:hover,
 .site-header__nav a:focus-visible {
   opacity: 0.68;
   transition-duration: var(--duration-hover-out), var(--duration-hover-in);
+}
+
+@media (hover: hover) {
+  .site-header__nav a:hover {
+    opacity: 0.68;
+    transition-duration: var(--duration-hover-out), var(--duration-hover-in);
+  }
 }
 
 .site-header__actions {
@@ -479,21 +558,94 @@ h1, h2, h3, h4, h5 {
               opacity var(--duration-hover-out) var(--ease-soft);
 }
 
-.site-header__telegram:hover,
 .site-header__telegram:focus-visible {
   opacity: 0.68;
   transition-duration: var(--duration-hover-out), var(--duration-hover-in);
 }
 
-@media (max-width: 479px) {
-  .site-header__cta {
-    display: none;
+@media (hover: hover) {
+  .site-header__telegram:hover {
+    opacity: 0.68;
+    transition-duration: var(--duration-hover-out), var(--duration-hover-in);
   }
+}
+
+/* Короткая надпись на кнопке — вариант под узкий экран (docs/mobile-spec.md
+   §4). Оба варианта лежат в разметке, показывает их медиазапрос ниже: JS
+   для подмены текста заводить не из-за чего, а менять текст кнопки
+   скриптом — значит потерять его при отключённом JS. */
+.site-header__cta-short {
+  display: none;
 }
 
 @media (min-width: 900px) {
   .site-header__nav {
     display: flex;
+  }
+}
+
+/* ==========================================================
+   4.1 ШАПКА НА ТЕЛЕФОНЕ (docs/mobile-spec.md §4)
+
+   Ссылки навигации уже скрыты (показывает их `min-width: 900px` выше),
+   бургера нет сознательно: четыре якоря не стоят отдельного меню.
+   Остаются логотип, Telegram и компактная кнопка «Оставить заявку» —
+   прежнее правило `max-width: 479px { .site-header__cta { display: none } }`
+   снято, на телефоне лендинг оставался вообще без целевого действия.
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  /* Высота ровно 56px (§4) при зоне нажатия 44px (§2): 44 + 2*6.
+     Вертикальные поля сняты, высоту держит min-height на самой полосе —
+     иначе одно из двух требований обязательно проигрывает другому. */
+  .site-header__inner {
+    min-height: 56px;
+    padding-block: 0;
+    gap: var(--space-3);
+  }
+
+  /* Лёгкое размытие подложки при прокрутке. Оговорка в §4 выше (о том,
+     что backdrop-filter дорог) относится к полноэкранному закреплённому
+     слою хиро; здесь размывается полоса высотой 56px, и только после
+     40px прокрутки, когда класс --scrim уже стоит. */
+  .js .site-header--scrim {
+    backdrop-filter: blur(10px) var(--saturate-glass);
+    -webkit-backdrop-filter: blur(10px) var(--saturate-glass);
+  }
+
+  /* §2: зона нажатия не меньше 44×44. Логотипу и иконке она добирается
+     вертикальными полями, а не размером самого знака. */
+  .site-header__logo {
+    min-height: 44px;
+    font-size: var(--font-size-body);
+  }
+
+  .site-header__telegram {
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    /* Отрицательное поле справа — чтобы увеличенная зона нажатия не
+       сдвинула кнопку от края: рисунок иконки остаётся на прежнем месте. */
+    margin-right: calc(var(--space-3) * -1);
+  }
+
+  .site-header__cta {
+    min-height: 44px;
+    padding-inline: var(--space-4);
+  }
+}
+
+/* На 360px логотип и полная надпись на кнопку уже не помещаются рядом —
+   кнопка становится «Заявка» (docs/mobile-spec.md §4; текст взят из
+   docs/texts-v3.md, эйброу блока 9). */
+@media (max-width: 380px) {
+  .site-header__cta-full {
+    display: none;
+  }
+
+  .site-header__cta-short {
+    display: inline;
   }
 }
 
@@ -532,6 +684,12 @@ h1, h2, h3, h4, h5 {
   --hero-ground: 25vh;
   --hero-cam: 0;
   --hero-base-y: -52%;
+  /* Горизонтальное положение станции внутри её стовьюпортного отрезка,
+     в vw и без единицы: то же число участвует в расчёте заливки маршрута
+     (.hero__road-done), поэтому держим его одной переменной — иначе узел,
+     чертёж и заполненный участок линии разъезжаются. На телефоне станция
+     встаёт по центру экрана (docs/mobile-spec.md §6). */
+  --hero-station-x: 60;
 
   height: 700vh;
   position: relative;
@@ -542,64 +700,49 @@ h1, h2, h3, h4, h5 {
 .hero__pin {
   position: sticky;
   top: 0;
+  /* Лесенка фолбэков, снизу вверх по поддержке:
+       100vh              — старые браузеры без вьюпорт-единиц;
+       100svh             — «малый» вьюпорт, тот, что при видимой адресной строке;
+       var(--hero-pin-h)  — он же, но замеренный и зафиксированный в пикселях
+                            (js/hero-panorama.js, fixPinHeight).
+
+     Именно svh, а НЕ dvh. dvh — «динамический» вьюпорт: он по определению
+     меняется при появлении и скрытии адресной строки, и закреплённая сцена
+     от него скачет прямо во время прокрутки. Требование «хиро не должен
+     дёргаться при скрытии адресной строки» выполняет svh, а dvh его
+     нарушает. Фиксация в пикселях добивает остаток: пересчёт только на
+     load и orientationchange, поэтому resize от адресной строки высоту
+     пина не трогает вовсе (docs/mobile-spec.md §6). */
   height: 100vh;
-  /* svh, а не dvh: dvh меняется при появлении и скрытии адресной строки
-     на мобильных, и закреплённая сцена скачет прямо во время скролла. */
   height: 100svh;
+  height: var(--hero-pin-h, 100svh);
   overflow: hidden;
 }
 
-.hero__defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
+/* -- Единственный слой сцены: дорога, станции, узлы. Слоёв параллакса
+   было три; дальний силуэт города и средний план с кранами и постройками
+   сняты вместе с линейным реквизитом — станции теперь фотореалистичные
+   рендеры, и штриховая графика рядом с ними читалась как чужая.
+   Обёртки .hero__scene над ним тоже больше нет: оборачивать один слой
+   не во что, .hero__pin — тот же прямоугольник.
 
-/* -- Три слоя параллакса: дальний силуэт города, средний — опоры и
-   постройки, ближний — дорога, станции и реквизит (параллакс 1.0).
-   Слои шире пройденного пути (docs/hero-panorama.md, «Правила, которые
-   легко нарушить») — иначе в конце проезда открывается пустота. -------- */
-.hero__scene {
-  position: absolute;
-  inset: 0;
-}
-
-.hero__layer {
+   Масштаба на этом слое нет и быть не может: камера ездит формулой
+   -100vw * --hero-cam, а центры станций стоят на 60/160/260…vw — любой
+   масштаб сдвинул бы одно относительно другого. Слой шире пройденного
+   пути (600vw против 560vw максимума), иначе в конце проезда открылась
+   бы пустота. -------------------------------------------------------- */
+.hero__layer--near {
   position: absolute;
   left: 0;
-  bottom: 0;
-  will-change: transform;
-}
-
-.hero__layer--far {
-  height: 20vh;
-  bottom: var(--hero-ground);
-  width: 280vw;
-  transform: translate3d(calc(-100vw * var(--hero-cam) * 0.28), 0, 0);
-  opacity: 0.13;
-}
-
-.hero__layer--mid {
-  height: 26vh;
-  bottom: var(--hero-ground);
-  width: 460vw;
-  transform: translate3d(calc(-100vw * var(--hero-cam) * 0.62), 0, 0);
-  opacity: 0.22;
-}
-
-.hero__layer--near {
   top: 0;
   height: 100%;
   width: 600vw;
-  transform: translate3d(calc(-100vw * var(--hero-cam)), 0, 0);
-}
-
-.hero__layer--far svg,
-.hero__layer--mid svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+  /* transform ставит js/hero-panorama.js инлайном, в пикселях: та же
+     величина, что и -100vw * --hero-cam, но без записи кастомного
+     свойства на предка — см. комментарий к layer/roadDone в том файле.
+     Значение ниже нужно только до первого кадра сцены. */
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* -- Линия маршрута -------------------------------------------------- */
@@ -635,7 +778,7 @@ h1, h2, h3, h4, h5 {
   background: var(--hero-red);
   width: 560vw;
   transform-origin: left center;
-  transform: scaleX(calc((100 * var(--hero-cam) + 60) / 560));
+  transform: scaleX(calc((100 * var(--hero-cam) + var(--hero-station-x)) / 560));
   will-change: transform;
 }
 
@@ -648,15 +791,27 @@ h1, h2, h3, h4, h5 {
   width: 100vw;
 }
 
+/* will-change здесь нет. Он стоит на .hero__layer--near — это и есть
+   слой, который едет; шесть станций внутри него неподвижны относительно
+   слоя. Замер (три пары прогонов вперемежку) показал, что дубль на
+   каждой станции кадрам не помогает и не мешает, а бюджет will-change на
+   страницу ограничен: сейчас его держат 8 элементов — слой сцены,
+   заливка маршрута и шесть текстовых блоков хиро. */
 .hero__station-art {
   position: absolute;
   bottom: var(--hero-ground);
-  left: 60vw;
+  left: calc(var(--hero-station-x) * 1vw);
   transform: translateX(-50%);
   width: min(44vw, 600px);
 }
 
-.hero__station-art svg {
+/* 1200x857 — ровно столько, сколько картинка занимает на экране при
+   devicePixelRatio 2 (600px по CSS), без запаса на пересэмплинг.
+   width/height в разметке заданы теми же числами: место под станцию
+   занято до загрузки, и раскладка не дёргается.
+   Ни filter, ни mix-blend-mode здесь нет и быть не должно: холст
+   картинок уже выровнен в #F5F5F3, ровно бумага хиро. */
+.hero__station-img {
   display: block;
   width: 100%;
   height: auto;
@@ -665,7 +820,7 @@ h1, h2, h3, h4, h5 {
 .hero__node {
   position: absolute;
   bottom: calc(var(--hero-ground) - 5px);
-  left: 60vw;
+  left: calc(var(--hero-station-x) * 1vw);
   width: 10px;
   height: 10px;
   margin-left: -5px;
@@ -681,69 +836,69 @@ h1, h2, h3, h4, h5 {
   border-color: var(--hero-red);
 }
 
-/* -- Реквизит между станциями (генерируется js/hero-panorama.js) ----- */
+/* -- 2. Единый грейд ------------------------------------------------
+   Один слой на всю сцену, а не свой на каждый объект: затемнение сверху
+   и снизу, радиальная виньетка из точки 60% ширины, холодный тон в
+   тенях и тёплый подсвет в светах. Именно общий слой и сводит разные
+   рисунки — силуэты города, опоры, чертежи станций, реквизит — в одну
+   съёмку с одним светом.
 
-.hero__props {
+   Сделано послойными градиентами, без mix-blend-mode: смешивание на
+   полноэкранном закреплённом слое заставляет браузер пересобирать всю
+   сцену на каждом кадре скролла (тот же случай, что и снятый blend у
+   зерна в кейсах). Поэтому холод положен ровно туда, где сцена
+   затемняется, а тепло — в светлую часть кадра.
+   Порядок в background: первым указан верхний слой. -------------------- */
+.hero__grade {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+  background:
+    /* тёплый подсвет в светах */
+    radial-gradient(58% 52% at 60% 44%, rgba(255, 206, 156, 0.15), transparent 72%),
+    /* виньетка из точки 60% ширины, холодная */
+    radial-gradient(96% 88% at 60% 46%, transparent 42%, rgba(28, 42, 66, 0.07) 76%, rgba(20, 32, 54, 0.17) 100%),
+    /* затемнение сверху */
+    linear-gradient(to bottom, rgba(22, 33, 52, 0.13), transparent 24%),
+    /* затемнение снизу */
+    linear-gradient(to top, rgba(22, 33, 52, 0.16), transparent 28%);
 }
 
-.hero__prop {
+/* -- 4. Хроматическая аберрация --------------------------------------
+   Два слоя со смещением в 1px: красный вправо, синий влево, opacity .03.
+   Расхождение живёт только по краям кадра — в центре градиент полностью
+   прозрачен, поэтому на тексте и на станции под камерой его не видно.
+
+   Кайма набрана градиентом, а не копией сцены: продублировать
+   инлайн-SVG на ~530 узлов дважды означало бы утроить отрисовку
+   закреплённого слоя ради эффекта в 3% непрозрачности. -------------- */
+.hero__ca {
   position: absolute;
-  bottom: var(--hero-ground);
-  transform: translateX(-50%);
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
 }
 
-.hero__prop svg {
-  display: block;
-  width: 100%;
-  height: auto;
+.hero__ca--r {
+  background: linear-gradient(to left, #ff1a00 0%, rgba(255, 26, 0, 0) 16%);
+  transform: translate3d(1px, 0, 0);
 }
 
-/* -- Приколотая фотография: рамка под рабочий кадр от человека в Китае,
-   пока — пунктирная заглушка (docs/hero-panorama.md, «Фотографии»).
-   Подстановка: заменить .hero__photo-slot на
-   <img class="hero__photo-img" src="assets/hero/…" alt=""> ----------- */
-.hero__photo {
+.hero__ca--b {
+  background: linear-gradient(to right, #0040ff 0%, rgba(0, 64, 255, 0) 16%);
+  transform: translate3d(-1px, 0, 0);
+}
+
+/* -- 3. Зерно --------------------------------------------------------
+   feTurbulence как data-URI. position: absolute внутри секции, без
+   mix-blend-mode и без position: fixed — и то и другое роняет
+   производительность на закреплённом полноэкранном слое. ------------ */
+.hero__grain {
   position: absolute;
-  left: var(--x);
-  width: var(--w, 19vw);
-  transform: translateX(-50%) rotate(var(--rot, -3deg));
-}
-
-.hero__photo-inner {
-  background: #fff;
-  border: 1px solid var(--hero-hair);
-  padding: 0.6vw;
-}
-
-.hero__photo-img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-}
-
-.hero__photo-slot {
-  aspect-ratio: 4 / 3;
-  border: 1px dashed rgba(20, 20, 20, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 0 1vw;
-  font-family: var(--font-family-mono);
-  font-size: clamp(9px, 0.72vw, 13px);
-  line-height: 1.5;
-  color: var(--hero-mute);
-}
-
-.hero__photo-clip {
-  position: absolute;
-  top: -1.5vw;
-  left: 14%;
-  width: 2.4vw;
-  height: auto;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='hn'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23hn)'/></svg>");
 }
 
 .hero__wash {
@@ -822,9 +977,11 @@ h1, h2, h3, h4, h5 {
     border-color var(--duration-hover-in) var(--ease-soft);
 }
 
-.hero__btn:hover {
-  background: var(--hero-red);
-  border-color: var(--hero-red);
+@media (hover: hover) {
+  .hero__btn:hover {
+    background: var(--hero-red);
+    border-color: var(--hero-red);
+  }
 }
 
 .hero__btn--ghost {
@@ -833,9 +990,11 @@ h1, h2, h3, h4, h5 {
   border-color: var(--hero-hair);
 }
 
-.hero__btn--ghost:hover {
-  border-color: var(--hero-ink);
-  background: transparent;
+@media (hover: hover) {
+  .hero__btn--ghost:hover {
+    border-color: var(--hero-ink);
+    background: transparent;
+  }
 }
 
 .hero__btn:focus-visible {
@@ -985,63 +1144,341 @@ h1, h2, h3, h4, h5 {
   }
 }
 
-@media (max-width: 820px) {
+/* ==========================================================
+   5.1 ХИРО ДО 1024px (docs/mobile-spec.md §6)
+
+   Эффект тот же — камера едет вбок вдоль панорамы, — меняется только
+   раскладка кадра и оптический размер станции.
+
+   Три диапазона:
+     < 768px          — текст шага сверху, объект под ним по центру;
+     768…1023.98px    — текст слева, объект справа;
+     альбом телефона  — объект ограничен по высоте, текст сжат.
+   От 1024px раскладка десктопная и здесь не участвует.
+
+   -- Почему у станций разный масштаб ---------------------------------
+   Холст у всех шести одинаковый (1200x857), а сам объект внутри занимает
+   от 50% ширины (станция 06) до 67% (станция 03) — остальное поля. При
+   одинаковой ширине контейнера объекты читались как разные по величине:
+   06 мелкая, 03 крупная. Поэтому контейнер .hero__station-art — это
+   теперь габарит САМОГО ОБЪЕКТА, а картинка внутри растянута на
+   1 / --st-fw и выровнена по центру: поля уезжают за границы контейнера,
+   а на экране остаётся объект заданного размера.
+
+   --st-k — поправка на видимую массу. Габарит объекта на экране задаётся
+   шириной, а объекты разной формы при одной ширине читаются по-разному:
+   плоский калькулятор 03 мельче, чем кубы 06 той же ширины. Масса растёт
+   как ширина * sqrt(отношения сторон), поэтому k ∝ (1/sqrt(ar))^0.35 —
+   частичная поправка: 0 дала бы равные ширины, 1 — равную массу, но
+   тогда 03 вылез бы на 82vw, за пределы заданного коридора 62-70vw.
+   0.35 подтягивает плоские объекты, не выходя из коридора: ширины
+   62.8…69.0vw. Значения посчитаны по реальным границам объекта в каждом
+   WebP — пересчитывать при замене картинок.
+
+   --st-fw / --st-ar / --st-pb — доля объекта в ширине холста, отношение
+   высоты объекта к его ширине и доля пустого поля под объектом.
+
+   Все четыре числа заданы инлайном на самой .hero__station в index.html,
+   рядом с её `left`. Не в CSS: перед станциями внутри .hero__layer--near
+   лежат три элемента дороги, поэтому ни nth-of-type, ни nth-child не
+   указывают на номер станции — счёт съезжает, и правила достаются не тем
+   элементам. Инлайн привязывает число к своей станции намертво.
+   ========================================================== */
+
+@media (max-width: 1023.98px) {
   .hero {
-    --hero-ground: 30vh;
+    /* Дорожка считается от --hero-pin-h — зафиксированной высоты пина,
+       а не от vh, который на мобильных гуляет вместе с адресной строкой. */
+    height: calc(var(--hero-pin-h, 100svh) * 7.5);
+    --hero-station-x: 50;
   }
 
-  .hero__intro,
-  .hero__acts .hero__act {
-    left: 6vw;
-    width: 88vw;
-    top: 16vh;
-    --hero-base-y: 0%;
-  }
-
-  .hero__acts .hero__act-title {
-    max-width: none;
-    font-size: clamp(30px, 8vw, 42px);
-  }
-
+  /* Габарит объекта: меньшее из «по ширине» и «по высоте». Ограничены обе
+     стороны, поэтому объект не вылезает ни в текст, ни за край экрана. */
   .hero__station-art {
-    left: 58vw;
-    width: 80vw;
+    left: calc(var(--hero-station-x) * 1vw);
+    transform: translateX(-50%);
+    width: min(
+      calc(var(--hero-obj-w) * var(--st-k)),
+      calc(var(--hero-obj-h) / var(--st-ar))
+    );
+    height: auto;
+    max-height: none;
+    aspect-ratio: 1 / var(--st-ar);
+    /* Подъём над линией маршрута: узел на линии остаётся читаемым. */
+    bottom: calc(var(--hero-ground) + 10px);
+    /* Обязательно. Картинка внутри шире и выше контейнера, а холст у неё
+       непрозрачный — без подрезки её нижнее поле легло бы поверх линии
+       маршрута и погасило бы её под каждой станцией. Контейнер обведён
+       ровно по габариту объекта, поэтому режется только пустое поле. */
+    overflow: hidden;
+  }
+
+  /* Картинка шире контейнера ровно во столько, во сколько объект меньше
+     холста; по горизонтали центрируется, по вертикали садится так, чтобы
+     низ объекта совпал с низом контейнера. */
+  .hero__station-img {
+    position: absolute;
+    left: 50%;
+    bottom: calc(-100% * var(--st-pb) / var(--st-fw) / var(--st-ar));
+    width: calc(100% / var(--st-fw));
+    max-width: none;
+    max-height: none;
+    height: auto;
+    margin: 0;
+    transform: translateX(-50%);
+  }
+}
+
+/* -- 5.1.1 ТЕЛЕФОН: текст сверху, объект под ним ---------------------
+   Кадр делится по высоте: текст в верхней трети, объект под ним по
+   центру, линия маршрута проходит под объектом. Вуаль перевёрнута
+   относительно прежней раскладки — сплошная «бумага» сверху под текст,
+   к 58% высоты прозрачная: текст лежит на бумаге, а не поверх объекта.
+   -------------------------------------------------------------------- */
+
+@media (max-width: 767.98px) {
+  .hero {
+    /* Линия маршрута низко: объект стоит на ней, под объектом её видно. */
+    --hero-ground: 12%;
+    /* 62.8vw…69.0vw после поправки --st-k, но не больше 360px
+       (327 * 1.099 = 359) — требование «62-70vw, не больше 360px». */
+    --hero-obj-w: min(62.79vw, 327px);
+    --hero-obj-h: calc(var(--hero-pin-h, 100svh) * 0.30);
   }
 
   .hero__veil {
     background: linear-gradient(
       180deg,
       var(--hero-paper) 0%,
-      rgba(245, 245, 243, 0.9) 34%,
+      rgba(245, 245, 243, 0.94) 34%,
       rgba(245, 245, 243, 0) 58%
     );
+  }
+
+  .hero__acts .hero__act {
+    left: var(--layout-edge-padding);
+    right: var(--layout-edge-padding);
+    width: auto;
+    top: 13%;
+    --hero-base-y: 0%;
+  }
+
+  .hero__acts .hero__act-num {
+    margin-bottom: 14px;
+  }
+
+  .hero__acts .hero__act-title {
+    max-width: none;
+    font-size: clamp(26px, 7.4vw, 36px);
+    margin-bottom: 14px;
+  }
+
+  .hero__acts .hero__act-text {
+    max-width: none;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Вступление: станций за ним ещё нет, деление кадра к нему не относится. */
+  .hero__intro {
+    left: var(--layout-edge-padding);
+    right: var(--layout-edge-padding);
+    width: auto;
+    top: 22%;
+    --hero-base-y: 0%;
+  }
+
+  .hero__title {
+    font-size: clamp(25px, 7vw, 34px);
+    margin-bottom: 18px;
+  }
+
+  .hero__lede {
+    font-size: 16px;
+    line-height: 1.5;
+    max-width: none;
+    margin-bottom: 26px;
+  }
+
+  .hero__eyebrow {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* §6: кнопки друг под другом на всю ширину, 48px по высоте. */
+  .hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .hero__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 14px 20px;
   }
 
   .hero__counter {
     display: none;
   }
 
-  .hero__title {
-    font-size: clamp(32px, 8.6vw, 46px);
-  }
-
-  .hero__photo {
-    --x: 34vw !important;
-    --w: 44vw;
-    bottom: calc(var(--hero-ground) + 4vh) !important;
-  }
-
-  .hero__photo-inner {
-    padding: 6px;
-  }
-
-  .hero__photo-clip {
-    width: 22px;
-    top: -14px;
+  .hero__hint {
+    left: var(--layout-edge-padding);
+    bottom: 3%;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+/* -- 5.1.2 ПЛАНШЕТ 768…1023.98px: текст слева, объект справа ---------
+   Раскладка по смыслу десктопная, но объект держим в 38-42vw и сдвигаем
+   центр станции правее, чтобы колонка текста слева до него не доходила.
+   -------------------------------------------------------------------- */
+
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .hero {
+    --hero-ground: 22vh;
+    /* 74, а не 70: самый широкий объект (станция 02, 41.3vw) при 70vw
+       доходил до колонки текста — на 768px они пересекались на 28px
+       даже в покое, до того как камера тронется. */
+    --hero-station-x: 74;
+    /* 38.1vw…41.8vw после поправки --st-k. */
+    --hero-obj-w: 38.05vw;
+    --hero-obj-h: calc(var(--hero-pin-h, 100svh) * 0.46);
+  }
+
+  .hero__veil {
+    background: linear-gradient(
+      90deg,
+      var(--hero-paper) 0%,
+      rgba(245, 245, 243, 0.94) 30%,
+      rgba(245, 245, 243, 0) 54%
+    );
+  }
+
+  .hero__intro,
+  .hero__acts .hero__act {
+    left: var(--layout-edge-padding);
+    right: auto;
+    /* До левого края объекта: 74vw − 20.7vw (половина самого широкого
+       габарита) = 53.3vw; 43vw + поле 20px оставляют зазор даже с учётом
+       сноса камеры к концу отрезка станции. */
+    width: min(43vw, 430px);
+  }
+
+  .hero__acts .hero__act-title {
+    max-width: none;
+    font-size: clamp(30px, 4.2vw, 40px);
+  }
+
+  .hero__acts .hero__act-text,
+  .hero__lede {
+    max-width: none;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .hero__title {
+    font-size: clamp(30px, 4.4vw, 42px);
+  }
+}
+
+/* -- 5.1.3 АЛЬБОМНЫЙ ТЕЛЕФОН ----------------------------------------
+   Высоты мало, ширины много: объект ограничен по высоте (38vh), текст
+   сжат, раскладка в две колонки — иначе на 390px высоты текст и объект
+   наезжают друг на друга при любом делении кадра по горизонтали.
+   -------------------------------------------------------------------- */
+
+@media (max-width: 1023.98px) and (orientation: landscape) and (max-height: 540px) {
+  .hero {
+    --hero-ground: 14%;
+    /* 74, а не 72: у станции 03 самый широкий объект и самый длинный
+       текст одновременно — на 844x390 они сходились вплотную. */
+    --hero-station-x: 74;
+    --hero-obj-w: 32vw;
+    --hero-obj-h: calc(var(--hero-pin-h, 100svh) * 0.38);
+  }
+
+  .hero__veil {
+    background: linear-gradient(
+      90deg,
+      var(--hero-paper) 0%,
+      rgba(245, 245, 243, 0.94) 32%,
+      rgba(245, 245, 243, 0) 56%
+    );
+  }
+
+  .hero__intro,
+  .hero__acts .hero__act {
+    left: var(--layout-edge-padding);
+    right: auto;
+    width: min(46vw, 400px);
+    top: 50%;
+    --hero-base-y: -50%;
+  }
+
+  .hero__acts .hero__act-num {
+    margin-bottom: 8px;
+  }
+
+  .hero__acts .hero__act-title {
+    font-size: clamp(22px, 3.4vw, 30px);
+    margin-bottom: 8px;
+  }
+
+  .hero__acts .hero__act-text {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .hero__title {
+    font-size: clamp(22px, 3.6vw, 32px);
+    margin-bottom: 12px;
+  }
+
+  .hero__lede {
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 16px;
+  }
+
+  .hero__eyebrow {
+    margin-bottom: 10px;
+  }
+
+  .hero__actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .hero__btn {
+    width: auto;
+    min-height: 44px;
+    padding: 11px 18px;
+  }
+
+  .hero__hint {
+    display: none;
+  }
+}
+
+/* ==========================================================
+   5.2 ХИРО — ФОЛЛБЭК СПИСКОМ (docs/mobile-spec.md §6, последний абзац)
+
+   Два условия, одно поведение: prefers-reduced-motion и ширина меньше
+   340px. Sticky выключается, шесть станций выводятся обычным
+   вертикальным списком — с иллюстрацией и текстом. Перенос чертежей из
+   панорамы в текстовые блоки делает js/hero-panorama.js: в разметке они
+   лежат внутри .hero__layer--near, то есть в другой ветке дерева, и
+   CSS их туда не переставит.
+
+   Запятая в медиазапросе — это логическое ИЛИ, поэтому правила описаны
+   один раз.
+   ========================================================== */
+
+@media (prefers-reduced-motion: reduce), (max-width: 339.98px) {
   .hero {
     height: auto;
   }
@@ -1052,10 +1489,18 @@ h1, h2, h3, h4, h5 {
     overflow: visible;
   }
 
-  .hero__scene,
+  /* .hero__ca сняты вместе со сценой, и не только из-за смысла: это два
+     слоя inset:0 со сдвигом ±1px, и как только с пина уходит
+     overflow: hidden, правый из них даёт ровно 1px горизонтальной
+     прокрутки на всю страницу. Источник, а не overflow-x: hidden на body
+     (docs/mobile-spec.md §2). */
+  .hero__layer--near,
   .hero__wash,
   .hero__veil,
-  .hero__hint {
+  .hero__hint,
+  .hero__ca,
+  .hero__grade,
+  .hero__grain {
     display: none;
   }
 
@@ -1066,11 +1511,38 @@ h1, h2, h3, h4, h5 {
     max-width: 640px;
     transform: none;
     opacity: 1;
-    padding: 8vh 7vw 0;
+    padding: 8vh var(--layout-edge-padding) 0;
   }
 
   .hero__acts {
     display: block;
+  }
+
+  /* Станция, переставленная в начало текстового блока.
+
+     Сброс обязателен: раскладка до 1024px (§5.1) обводит контейнер по
+     габариту объекта и кладёт картинку внутрь абсолютом, а здесь
+     контейнер становится обычным потоковым блоком. Без сброса он
+     схлопывается в нулевую высоту (абсолютный потомок её не создаёт),
+     а overflow: hidden дорезает остаток — станции исчезали вовсе. */
+  .hero__act .hero__station-art {
+    position: static;
+    width: 100%;
+    max-height: none;
+    transform: none;
+    margin-bottom: var(--space-5);
+    will-change: auto;
+    aspect-ratio: auto;
+    overflow: visible;
+  }
+
+  .hero__act .hero__station-img {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    transform: none;
+    margin: 0;
   }
 
   .hero__counter {
@@ -1079,6 +1551,20 @@ h1, h2, h3, h4, h5 {
 
   .hero__hint-rule::after {
     animation: none;
+  }
+}
+
+/* Ниже 340px список уже вертикальный — кнопки вступления всё равно
+   должны быть на всю ширину (§6). В prefers-reduced-motion на десктопе
+   раскладку вступления не трогаем: там ширины хватает. */
+@media (max-width: 339.98px) {
+  .hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero__btn {
+    width: 100%;
   }
 }
 
@@ -1112,10 +1598,13 @@ h1, h2, h3, h4, h5 {
   }
 }
 
+/* docs/mobile-spec.md §6 — четыре плашки: сетка 2×2 на телефоне.
+   Одной колонкой они занимали весь экран целиком, и связка «четыре
+   коротких факта одним взглядом» рассыпалась на четыре экрана подряд. */
 .hero-stats__row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-6);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6) var(--space-5);
 }
 
 .hero-stats__value {
@@ -1133,9 +1622,22 @@ h1, h2, h3, h4, h5 {
   max-width: 24ch;
 }
 
+/* В половинной колонке заголовок плашки набором h3 распадался на три
+   строки («Своя команда в Китае»), и ряд шёл рваным. Кегль меньше —
+   строк две, сетка 2×2 читается рядами. Текст не меняется. */
+@media (max-width: 559.98px) {
+  .hero-stats__value {
+    font-size: 1.375rem;
+    line-height: 1.15;
+  }
+
+  .hero-stats__label {
+    max-width: none;
+  }
+}
+
 @media (min-width: 640px) {
   .hero-stats__row {
-    grid-template-columns: repeat(2, 1fr);
     row-gap: var(--space-8);
   }
 }
@@ -1160,7 +1662,7 @@ h1, h2, h3, h4, h5 {
    7. COVERAGE (секция 2 — что закрываем вместо вас)
    Перенесено из docs/ref-bez-nas.html (CLAUDE.md, «Перенос блоков из
    docs/ref-*.html»), классы с префиксом bn-. Слева SVG-схема связей
-   с двумя состояниями («как обычно» / «с Corex-Trade»), справа список
+   с двумя состояниями («как обычно» / «с COREX»), справа список
    из семи строк со старым исполнителем и тем, кто закрывает участок
    теперь. Переключение — js/coverage.js: плашки едут между позициями
    950мс по easeOutExpo (JS rAF, а не CSS-transition — схема двигает
@@ -1249,7 +1751,7 @@ h1, h2, h3, h4, h5 {
   height: auto;
 }
 
-/* ---- переключатель «как обычно / с Corex-Trade» ---- */
+/* ---- переключатель «как обычно / с COREX» ---- */
 
 .bn-seg {
   position: relative;
@@ -1451,6 +1953,15 @@ h1, h2, h3, h4, h5 {
   transform: none;
 }
 
+/* «Закрываем мы» и «наш партнёр» обязаны читаться как разные вещи, иначе
+   вся правка таблицы теряет смысл: акцентный цвет остаётся за участками,
+   которые ведём сами, партнёрские строки идут тем же моноширинным
+   шрифтом, но приглушённым цветом текста — тем самым, что уже носит
+   исполнитель слева (.bn-item__old). Новых цветов и токенов не заводим. */
+.bn-item__new--partner {
+  color: var(--color-text-on-light-muted);
+}
+
 .coverage__note {
   margin-top: var(--space-6);
   color: var(--color-text-on-light-muted);
@@ -1468,6 +1979,409 @@ h1, h2, h3, h4, h5 {
 @media (min-width: 900px) {
   .bn-board {
     grid-template-columns: 1fr minmax(280px, 38%);
+  }
+}
+
+/* ==========================================================
+   7.1 «БЕЗ НАС» НА ТЕЛЕФОНЕ (docs/mobile-spec.md §7)
+
+   Ведомость: строка из двух колонок становится одной — номер
+   моноширинным слева, под задачей исполнитель мелким приглушённым
+   текстом. Линии между строками и прочерчивание scaleX остаются.
+
+   Схема: на телефоне рисуется вертикальная версия (второй набор
+   координат в js/coverage.js), поэтому здесь снимается горизонтальная
+   прокрутка и минимальная ширина, которые держали широкий вьюбокс.
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  /* Схема больше никуда не уезжает вбок — прокручивать нечего. */
+  .bn-scheme {
+    overflow-x: visible;
+  }
+
+  .bn-svg {
+    min-width: 0;
+  }
+
+  /* Переключатель: две кнопки в ряд на всю ширину, зона нажатия 44px
+     (§2). min-width 8rem на узком экране выталкивал вторую кнопку. */
+  .bn-scheme__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bn-seg {
+    width: 100%;
+  }
+
+  .bn-seg__btn {
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: var(--space-2);
+  }
+
+  .bn-scheme__lbl {
+    white-space: normal;
+  }
+
+  /* Ведомость в одну колонку: номер уходит над задачей отдельной
+     строкой, исполнитель — под ней. Сетка остаётся сеткой (линии и
+     появление строк не трогаем), меняется только раскладка ячеек. */
+  .bn-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+
+  .bn-item__ix {
+    padding-top: 0;
+  }
+
+  .bn-item__task {
+    font-size: var(--font-size-body);
+  }
+
+  .bn-item__who {
+    margin-top: var(--space-1);
+  }
+
+  /* Итоговая строка — по левому краю, двойная линия сверху сохраняется
+     за счёт border-top у .bn-list и рамки самой строки. */
+  .coverage__note {
+    max-width: none;
+  }
+
+  .bn-tally__t {
+    max-width: none;
+  }
+}
+
+/* ==========================================================
+   3.1 УСЛУГИ — карточки-документы (index.html, секция .services)
+
+   Тон взят у блока «Без нас»: белая бумага, волосяная рамка, нулевое
+   скругление, моноширинные служебные подписи. Ни теней, ни градиентов,
+   ни иконок, ни пастельных подложек — карточка должна читаться как лист
+   из папки, а не как маркетинговая плашка.
+
+   Единственное, чем выделяется главная карточка, — толщина верхней
+   линии (2px вместо 1px) и красная метка «Бесплатно». Фоном она не
+   отличается сознательно: заливка сразу превращает её в рекламный
+   блок и ломает ряд.
+
+   Своего скрипта у блока нет: появление ведёт общий .reveal
+   (js/reveal.js), очередь задержек задана атрибутом --d прямо в
+   разметке — ровно шесть элементов по 70ms (--stagger-reveal), главная
+   карточка идёт нулевой, до остальных.
+   ========================================================== */
+
+.services {
+  background: var(--color-bg-light-alt);
+  padding-block: var(--space-section-y);
+}
+
+/* -- Сетка: 3 колонки от 1100px, 2 от 700px, иначе одна.
+   Главная карточка занимает всю ширину, после неё остаются ровно шесть
+   ячеек — на трёх колонках это два полных ряда. -------------------- */
+.sv-grid {
+  margin-top: var(--space-block-gap);
+  list-style: none;
+  margin-inline: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 700px) {
+  .sv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .sv-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Ячейка — носитель .reveal, карточка внутри отвечает за ховер. Разделение
+   нужно, чтобы 700ms появления и 180/260ms ховера не делили одно свойство
+   transform на одном элементе и не перебивали друг другу длительность. */
+.sv-cell {
+  display: flex;
+}
+
+.sv-cell--lead {
+  grid-column: 1 / -1;
+}
+
+/* -- Карточка ------------------------------------------------------- */
+
+.sv-card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-light);
+  border: 1px solid var(--color-border-on-light);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  transition: border-color var(--duration-hover-out) var(--ease-soft),
+    transform var(--duration-hover-out) var(--ease-soft);
+}
+
+/* Верхняя линия карточки прочерчивается слева направо вместе с появлением.
+   Отдельный слой, а не border-top: border нельзя анимировать через
+   transform, а масштабировать по ширине можно только собственный элемент. */
+.sv-card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  height: 1px;
+  background: var(--color-text-on-light);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--duration-reveal-line) var(--ease-out-soft);
+  transition-delay: var(--d, 0ms);
+}
+
+.sv-card--lead::before {
+  height: 2px;
+}
+
+.reveal.in .sv-card::before {
+  transform: scaleX(1);
+}
+
+@media (hover: hover) {
+  .sv-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--color-border-on-light-strong);
+    transition-duration: var(--duration-hover-in);
+  }
+}
+
+/* -- Содержимое карточки -------------------------------------------- */
+
+.sv-card__ix {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-on-light-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-tag {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-accent-cta);
+}
+
+.sv-card__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-h4);
+  line-height: var(--line-height-heading);
+  color: var(--color-text-on-light);
+}
+
+.sv-card--lead .sv-card__title {
+  font-size: var(--font-size-h3);
+}
+
+.sv-card__for {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-light-muted);
+}
+
+.sv-label {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-on-light-faint);
+}
+
+/* Маркер — короткая черта, а не иконка и не точка: список остаётся
+   похожим на строку описи. */
+.sv-do {
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sv-do li {
+  position: relative;
+  padding-left: var(--space-5);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-light);
+}
+
+.sv-do li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 12px;
+  height: 1px;
+  background: var(--color-border-on-light-strong);
+}
+
+.sv-note {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  color: var(--color-accent-primary);
+}
+
+.sv-term {
+  margin: 0 0 var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-on-light);
+}
+
+.sv-term__l {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-on-light-faint);
+}
+
+.sv-term__v {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-light);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Кнопка прижата к низу: карточки в ряду тянутся на общую высоту, и
+   кнопки в ряду встают на одну линию независимо от длины списков. */
+.sv-card__cta {
+  margin: auto 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.sv-btn {
+  text-decoration: none;
+}
+
+.sv-card__undercta {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-on-light-muted);
+}
+
+/* -- Главная карточка: две колонки на десктопе --------------------- */
+
+.sv-card--lead {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5) var(--space-8);
+  padding: var(--space-7) var(--space-6) var(--space-6);
+}
+
+@media (min-width: 900px) {
+  .sv-card--lead {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+}
+
+.sv-card__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sv-card__col--side {
+  border-top: 1px solid var(--color-border-on-light);
+  padding-top: var(--space-5);
+}
+
+@media (min-width: 900px) {
+  .sv-card__col--side {
+    border-top: 0;
+    border-left: 1px solid var(--color-border-on-light);
+    padding-top: 0;
+    padding-left: var(--space-8);
+  }
+}
+
+/* Первый блок правой колонки — срок; верхняя черта у него лишняя,
+   её роль здесь играет сама граница колонки. */
+.sv-card__col--side .sv-term {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sv-card--lead .sv-do {
+  margin-bottom: 0;
+}
+
+.sv-card__col--side .sv-card__cta {
+  margin-top: 0;
+}
+
+.sv-card__start {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-light);
+}
+
+/* -- Последняя ячейка: без рамки, всё по левому краю ---------------- */
+
+.sv-cell--ask .sv-ask {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-6) 0 var(--space-5);
+}
+
+.sv-ask__t {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-h4);
+  line-height: var(--line-height-heading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-light);
+}
+
+.sv-ask__s {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-light-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-card::before {
+    transform: scaleX(1) !important;
+    transition: none !important;
+  }
+
+  .sv-card:hover {
+    transform: none !important;
   }
 }
 
@@ -1636,7 +2550,9 @@ h1, h2, h3, h4, h5 {
   color: var(--color-text-on-light-faint);
 }
 
-@media (max-width: 480px) {
+/* docs/mobile-spec.md §7, «Сроки»: подписи дорожек над ними, не слева.
+   Порог поднят с 480px до 560px — брейкпоинты из §1, а не свои. */
+@media (max-width: 559.98px) {
   .timelines__overlap-row {
     grid-template-columns: 1fr;
   }
@@ -1659,6 +2575,15 @@ h1, h2, h3, h4, h5 {
   .timelines__overlap-sub {
     grid-row: 3;
     margin-top: var(--space-2);
+  }
+}
+
+/* Сноска: боковые поля карточки съедали треть ширины экрана, и абзац
+   шёл колонкой в шесть слов. Раскладка та же, поля уже. */
+@media (max-width: 559.98px) {
+  .timelines__note {
+    padding: var(--space-4) var(--space-5);
+    max-width: none;
   }
 }
 
@@ -1790,6 +2715,17 @@ h1, h2, h3, h4, h5 {
   font-weight: var(--font-weight-medium);
   color: var(--color-text-on-light);
   letter-spacing: var(--letter-spacing-tight);
+}
+
+/* Нижний порог 16px — см. §1, docs/mobile-spec.md §2. */
+@media (max-width: 899.98px) {
+  .cc-calc__input input {
+    font-size: max(1rem, clamp(1.0625rem, 0.95rem + 0.6vw, 1.3125rem));
+  }
+
+  .cc-calc__input--text input {
+    font-size: max(1rem, var(--font-size-body));
+  }
 }
 
 .cc-calc__input input:focus {
@@ -1951,8 +2887,25 @@ h1, h2, h3, h4, h5 {
   background-size: 0% 2px;
 }
 
+/* Разовая отметка «услуга выбрана» — js/services.js вешает .is-marked на
+   #contact-need после перехода из блока «Услуги». Специально то же самое
+   подчёркивание, что и при фокусе: линия растёт от центра к краям за
+   --duration-toggle (360ms), новой анимации под это не заводим. */
+.form-field select.is-marked {
+  background-size: 100% 2px;
+}
+
 .form-field input:focus-visible,
 .form-field select:focus-visible,
+/* Нижний порог 16px — см. §1, docs/mobile-spec.md §2. */
+@media (max-width: 899.98px) {
+  .form-field input,
+  .form-field select,
+  .form-field textarea {
+    font-size: max(1rem, var(--font-size-body));
+  }
+}
+
 .form-field textarea:focus-visible {
   background-size: 100% 2px;
 }
@@ -2299,7 +3252,9 @@ h1, h2, h3, h4, h5 {
   align-self: flex-start;
 }
 
-@media (min-width: 480px) {
+/* Порог поднят с 480px до 560px: на телефоне поля идут в одну колонку
+   (docs/mobile-spec.md §7), две колонки начинаются с планшета. */
+@media (min-width: 560px) {
   .cc-calc__grid--a,
   .cc-calc__grid--b,
   .cc-calc__chips,
@@ -2309,6 +3264,139 @@ h1, h2, h3, h4, h5 {
 
   .cc-calc__grid--a {
     grid-template-columns: 1.55fr 1fr;
+  }
+}
+
+/* ==========================================================
+   9.1 КАЛЬКУЛЯТОР НА ТЕЛЕФОНЕ (docs/mobile-spec.md §7)
+   ========================================================== */
+
+/* Нативный список категорий показывается вместо плашек ниже 900px.
+   По умолчанию скрыт — на десктопе выбор ведут плашки. */
+.cc-calc__cat-select {
+  display: none;
+}
+
+@media (max-width: 899.98px) {
+  /* Единственная секция, выключенная по центру, — остальные по левому
+     краю. На узком экране центровка ещё и рвала абзац на «столбик». */
+  .calculator .container,
+  .calculator .section-lede {
+    text-align: left;
+    margin-inline: 0;
+  }
+
+  .cc-calc__chips {
+    display: none;
+  }
+
+  .cc-calc__cat-select {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-on-light);
+    border-radius: 0;
+    background: var(--color-surface-light);
+    color: var(--color-text-on-light);
+    font: inherit;
+    /* §2: не меньше 16px, иначе iOS зумит при фокусе. */
+    font-size: max(1rem, var(--font-size-small));
+  }
+
+  .cc-calc__cat-select:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  /* Подпись поля обрезалась многоточием: на узкой колонке «Стоимость
+     партии на фабрике» не помещалась в строку. Пусть переносится. */
+  .cc-calc__field label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* Чекбокс НДС: сам квадрат остаётся 16px (его рисует система), зону
+     нажатия добирает подпись — строка целиком становится мишенью. */
+  .cc-calc__vat {
+    align-items: flex-start;
+    min-height: 44px;
+    padding-block: var(--space-2);
+  }
+
+  .cc-calc__vat input {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+  }
+
+  /* Способ доставки — сегментный переключатель в ряд, а не два блока
+     друг под другом (§7). Вариантов два, «2×2» из спеки для четырёх
+     способов здесь вырождается в один ряд из двух. */
+  .cc-calc__modes {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cc-calc__mode {
+    padding: var(--space-3);
+  }
+
+  /* «Способ доставки» и ссылка сброса не помещались в одну строку. */
+  .cc-calc__modes-head {
+    flex-wrap: wrap;
+  }
+
+  /* Кнопка на всю ширину (§7). */
+  .cc-calc__cta {
+    align-self: stretch;
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .cc-calc__modes-note,
+  .cc-calc__foot p {
+    max-width: none;
+  }
+}
+
+@media (max-width: 559.98px) {
+  /* Поля панели: 32px по бокам съедали пятую часть экрана. */
+  .cc-calc__ctrl,
+  .cc-calc__res {
+    padding: var(--space-5);
+  }
+
+  /* Строка сметы: название переносится на две-три строки, и квадрат
+     цвета, выровненный по центру, повисал в воздухе напротив середины
+     названия. Прижимаем к первой строке. */
+  .cc-calc__row {
+    gap: var(--space-3);
+  }
+
+  .cc-calc__row-dot {
+    align-self: start;
+    margin-top: 0.42em;
+  }
+
+  /* Два способа в ряд на 350px: подпись «Авто · 22–25 дней» помещается
+     в строку только более мелким кеглем. */
+  .cc-calc__mode-t {
+    font-size: var(--font-size-caption);
+  }
+
+  .cc-calc__mode-v {
+    font-size: var(--font-size-body);
+  }
+
+  /* «Итого на складе» и сумма не делятся на две колонки на 350px:
+     подпись уходила в три строки рядом с числом. */
+  .cc-calc__sum {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cc-calc__sum-vl {
+    font-size: var(--font-size-h5);
   }
 }
 
@@ -2324,544 +3412,669 @@ h1, h2, h3, h4, h5 {
 }
 
 /* ==========================================================
-   10. CS-CASES (секция 5 — с чем к нам приходят, папка с документами)
-   Перенесено из docs/corex-cases-folder_1.html (CLAUDE.md, «Перенос
-   блоков из docs/ref-*.html»), классы с префиксом cs-. Цвета демо
-   заменены на токены проекта: --blue → --color-accent-primary (акцент
-   данных), --red → --color-accent-cta (акцент действия), --ink/--muted/
-   --hair внутри "бумажного" документа → --color-text-on-light(-muted)/
-   --color-border-on-light, --table (тёмная сцена вокруг) → --color-neutral-950.
-   Сцена целиком на собственном scroll+rAF цикле (js/cases.js), тем же
-   приёмом, что у Hero (js/hero-panorama.js) — общей системой .reveal
-   (js/reveal.js) не пользуется: пять документов должны отматываться
-   назад при скролле вверх, а не проигрываться один раз.
+   10. CASES (секция 5 — три закрытые поставки)
+   Тексты: docs/cases.md. Движение: docs/motion-spec.md, раздел
+   «Блок кейсов — переключение». Механику ведёт js/cases.js (единый
+   массив CASES) — здесь только состояния, само переключение классов
+   в скрипте. Цвета/шрифты/отступы — те же токены, что и у остальных
+   секций: тёмная сцена (--color-neutral-950), бирюзовый на данных,
+   коралловый на действии и на активной вкладке.
+
+   Скролл-эффектов внутри блока нет: .reveal получают только шапка,
+   вкладки и строка под блоком, карточки живут на собственных классах
+   .is-shown / .is-out, потому что переключаются вручную и много раз,
+   а .reveal по спеке проигрывается один раз.
    ========================================================== */
 
-.cs-cases {
+.cases {
   position: relative;
   background: var(--color-neutral-950);
   color: var(--color-text-on-dark);
+  padding-block: var(--space-section-y);
 }
 
-.cs-intro {
-  min-height: 100vh;
-  min-height: 100dvh;
+.cases__title {
+  margin: 0;
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-heading);
+  color: var(--color-text-on-dark);
+  max-width: 20ch;
+}
+
+.cases__lede {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-dark-faint);
+  max-width: 52ch;
+}
+
+/* ==========================================================
+   10.1 Доска: слева вкладки, справа карточка
+   ========================================================== */
+
+.cases__board {
+  margin-top: var(--space-block-gap);
+  display: grid;
+  grid-template-columns: minmax(15rem, 19rem) 1fr;
+  gap: var(--space-9);
+  align-items: start;
+}
+
+/* -- Вкладки -------------------------------------------------------- */
+
+.cases__tabs {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: var(--space-9) clamp(var(--space-5), 4vw, var(--space-9));
+  border-left: 1px solid var(--color-border-on-dark);
 }
 
-.cs-intro__title {
+/* Коралловая черта активной вкладки. Переезжает только через transform:
+   translateY на позицию вкладки + scaleY от опорных 100px её высоты
+   (js/cases.js, MARK_BASE) — height не анимируется (запрет №1). */
+.cases__mark {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 2px;
+  height: 100px;
+  background: var(--color-accent-cta);
+  transform-origin: top left;
+  transform: scaleY(0);
+  opacity: 0;
+  transition: transform var(--duration-toggle) var(--ease-in-out-soft),
+    opacity var(--duration-toggle) var(--ease-in-out-soft);
+}
+
+.cases__mark.is-on {
+  opacity: 1;
+}
+
+.cases__tab {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  text-align: left;
+  width: 100%;
+  padding: var(--space-5);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  color: var(--color-text-on-dark-faint);
+  /* Ховер входит быстрее, чем выходит (запрет №5). */
+  transition: color var(--duration-hover-out) var(--ease-soft),
+    background-color var(--duration-hover-out) var(--ease-soft);
+}
+
+.cases__tab:hover {
+  color: var(--color-text-on-dark-muted);
+  background-color: var(--color-glass-bg-on-dark);
+  transition-duration: var(--duration-hover-in);
+}
+
+.cases__tab.is-active {
+  color: var(--color-text-on-dark);
+}
+
+.cases__tab-ix {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-on-dark-faint);
+}
+
+.cases__tab-nm {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-heading);
+  color: inherit;
+}
+
+.cases__tab-mt {
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-water);
+}
+
+/* ==========================================================
+   10.2 Карточки. Все лежат в одной ячейке grid — высота блока равна
+   самому длинному кейсу, при переключении страница не прыгает и
+   высота не анимируется.
+   ========================================================== */
+
+.cases__stage {
+  display: grid;
+}
+
+.cases__card {
+  grid-area: 1 / 1;
+  position: relative;
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+  padding-top: var(--space-6);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.cases__card.is-shown {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Уход старой карточки — 200мс на всю карточку целиком, быстрее входа. */
+.cases__card.is-out {
+  opacity: 0;
+  transform: translateX(var(--ox, -8px));
+  visibility: visible;
+  transition: opacity var(--duration-fast) var(--ease-in-out-soft),
+    transform var(--duration-fast) var(--ease-in-out-soft);
+}
+
+/* Линия сверху карточки прочерчивается заново на каждом входе. */
+.cases__line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border-on-dark-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.cases__card.is-shown .cases__line {
+  transform: scaleX(1);
+  transition: transform var(--duration-reveal) var(--ease-out-soft);
+}
+
+/* Очередь входа: номер, заголовок, было, что сделали, цифры, фото —
+   шесть элементов, лимит очереди соблюдён. --i задаёт место в очереди
+   (js/cases.js), --sx — сторону, с которой элемент въезжает. */
+.cases__part {
+  opacity: 0;
+  transform: translateX(var(--sx, 24px));
+}
+
+.cases__card.is-shown .cases__part {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--duration-reveal) var(--ease-out-soft),
+    transform var(--duration-reveal) var(--ease-out-soft);
+  transition-delay: calc(var(--i, 0) * var(--stagger-reveal));
+}
+
+/* -- «01 / 03»: текущая цифра прокатывается вверх, как на табло ------ */
+
+.cases__num {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  letter-spacing: var(--letter-spacing-wide);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-on-dark-faint);
+}
+
+.cases__num-roll {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.cases__num-cur {
+  display: block;
+  color: var(--color-text-on-dark);
+  transform: translateY(100%);
+}
+
+.cases__card.is-shown .cases__num-cur {
+  transform: none;
+  transition: transform var(--duration-reveal) var(--ease-out-soft);
+}
+
+.cases__card-title {
   margin: 0;
   font-size: var(--font-size-h3);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-heading);
   color: var(--color-text-on-dark);
+  max-width: 22ch;
 }
 
-.cs-intro__lede {
-  margin: var(--space-2) 0 0;
-  font-size: var(--font-size-small);
-  color: var(--color-text-on-dark-faint);
-  max-width: 44ch;
-  line-height: var(--line-height-body);
+.cases__block {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.cs-track {
-  height: 600vh;
-  position: relative;
-}
-
-.cs-pin {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  /* svh — по той же причине, что и у .hero__pin выше. */
-  height: 100svh;
-  overflow: hidden;
-}
-
-.cs-lamp {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--gradient-water-veil),
-    radial-gradient(ellipse 90% 60% at 50% 108%,
-      color-mix(in srgb, var(--color-accent-primary) 16%, transparent), transparent 60%);
-}
-
-/* Без mix-blend-mode: наложение полноэкранного слоя шума поверх всей
-   закреплённой сцены пересчитывалось на каждом кадре скролла. Простая
-   opacity даёт почти ту же фактуру бесплатно. */
-.cs-grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
-}
-
-.cs-head {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-7) clamp(var(--space-5), 4vw, var(--space-9));
-  display: flex;
-  justify-content: flex-end;
-  z-index: 6;
-}
-
-.cs-counter {
+.cases__label {
+  margin: 0;
   font-family: var(--font-family-mono);
   font-size: var(--font-size-caption);
   letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
   color: var(--color-text-on-dark-faint);
-  white-space: nowrap;
-  padding-top: var(--space-2);
-  font-variant-numeric: tabular-nums;
 }
 
-.cs-counter__cur {
-  color: var(--color-text-on-dark);
-}
-
-.cs-stage {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cs-doc {
-  position: absolute;
-  left: 50%;
-  top: calc(50% - 22px);
-  width: min(1060px, 90vw);
-}
-
-.cs-doc__inner {
-  transform: translate(-50%, -50%);
-  will-change: transform, opacity;
-  background: var(--color-surface-light);
-  color: var(--color-text-on-light);
-  height: clamp(400px, 60vh, 600px);
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 40px 90px -30px rgba(11, 18, 28, 0.85), 0 2px 0 rgba(11, 18, 28, 0.4);
-}
-
-.cs-doc__body {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 41% 1fr;
-  min-height: 0;
-}
-
-.cs-doc__photo {
-  position: relative;
-  overflow: hidden;
-  background: var(--color-neutral-900);
-  border-right: 1px solid var(--color-border-on-light);
-}
-
-.cs-doc__photo-img {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-image: var(--img, none);
-  will-change: transform;
-}
-
-.cs-doc__photo-img::after {
-  content: attr(data-slot);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-on-dark-faint);
-  background: linear-gradient(135deg, var(--color-bg-dark-mid), var(--color-neutral-950) 60%),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 9px);
-}
-
-.cs-doc__photo.has-img .cs-doc__photo-img::after {
-  display: none;
-}
-
-.cs-doc__stamp {
-  position: absolute;
-  left: var(--space-4);
-  top: var(--space-4);
-  z-index: 2;
-  font-family: var(--font-family-mono);
-  font-size: 10.5px;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-on-dark);
-  /* Без backdrop-filter: штамп лежит внутри .cs-doc__inner, который
-     трансформируется каждый кадр, и размытие подложки пересчитывалось
-     вместе с ним — пять раз за кадр. Фон под ним и так плотный. */
-  background: rgba(11, 18, 28, 0.6);
-  border: 1px solid var(--color-border-on-dark-strong);
-  padding: 5px var(--space-2);
-}
-
-.cs-doc__data {
-  padding: clamp(var(--space-5), 2.4vw, var(--space-8));
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.cs-doc__meta {
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-on-light-muted);
-}
-
-.cs-doc__title {
-  margin: var(--space-3) 0 0;
-  font-size: var(--font-size-h3);
-  line-height: var(--line-height-heading);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-tight);
-  max-width: 19ch;
-  color: var(--color-text-on-light);
-}
-
-.cs-doc__fields {
-  margin-top: auto;
-  padding-top: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.cs-field {
-  display: grid;
-  grid-template-columns: 7rem 1fr;
-  gap: var(--space-3);
-  align-items: start;
-}
-
-.cs-field__l {
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  color: var(--color-text-on-light-muted);
-  padding-top: 2px;
-  position: relative;
-}
-
-.cs-field__l::before {
-  content: '';
-  position: absolute;
-  left: -14px;
-  top: 8px;
-  width: 6px;
-  height: 1px;
-  background: var(--color-accent-cta);
-}
-
-.cs-field__t {
-  font-size: var(--font-size-small);
+.cases__before {
+  margin: 0;
+  font-size: var(--font-size-body);
   line-height: var(--line-height-body);
-  color: var(--color-text-on-light);
-  max-width: 52ch;
+  color: var(--color-text-on-dark-muted);
+  max-width: 58ch;
 }
 
-.cs-spec {
+.cases__done {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
-  margin-top: var(--space-5);
-  border-top: 1px solid var(--color-border-on-light);
-  padding-top: var(--space-3);
-  font-family: var(--font-family-mono);
-  font-variant-numeric: tabular-nums;
+  max-width: 58ch;
 }
 
-.cs-spec div span {
-  display: block;
-  font-size: 10px;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-on-light-muted);
-  margin-bottom: 4px;
-}
-
-.cs-spec div b {
-  font-size: 12.5px;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-on-light);
-}
-
-.cs-perf {
+.cases__done li {
   position: relative;
-  height: 0;
-  border-top: 1px dashed color-mix(in srgb, var(--color-text-on-light) 30%, transparent);
-}
-
-.cs-perf::before,
-.cs-perf::after {
-  content: '';
-  position: absolute;
-  top: -8px;
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  background: var(--color-neutral-950);
-}
-
-.cs-perf::before {
-  left: -8px;
-}
-
-.cs-perf::after {
-  right: -8px;
-}
-
-.cs-rail {
-  position: relative;
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-dark);
-  overflow: hidden;
-  height: clamp(78px, 9vh, 102px);
-  display: flex;
-  align-items: center;
-  padding: 0 clamp(var(--space-5), 2.4vw, var(--space-8));
-  gap: clamp(var(--space-4), 3vw, var(--space-8));
-}
-
-.cs-rail__fill {
-  position: absolute;
-  inset: 0;
-  background: var(--color-accent-primary);
-  transform-origin: left;
-  transform: scaleX(0);
-}
-
-.cs-rail__bg {
-  position: absolute;
-  inset: 0;
-  background: var(--color-bg-dark-mid);
-}
-
-.cs-rail > * {
-  position: relative;
-  z-index: 2;
-}
-
-.cs-rail__basis {
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  letter-spacing: var(--letter-spacing-normal);
-  color: var(--color-text-on-dark-muted);
-  max-width: 20ch;
+  padding-left: var(--space-6);
+  font-size: var(--font-size-body);
   line-height: var(--line-height-body);
-}
-
-.cs-rail__num {
-  font-family: var(--font-family-mono);
-  font-size: clamp(27px, 3.6vw, 48px);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: var(--letter-spacing-tight);
-  line-height: 1;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.cs-rail__pct {
-  font-family: var(--font-family-mono);
-  margin-left: auto;
-  font-size: var(--font-size-small);
-  letter-spacing: var(--letter-spacing-normal);
   color: var(--color-text-on-dark-muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
-.cs-rail__pct b {
-  font-size: clamp(17px, 1.9vw, 25px);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-on-dark);
-  margin-left: var(--space-2);
-}
-
-.cs-folder {
+/* Волосяная линия вместо маркера — тот же приём, что у таблиц секции. */
+.cases__done li::before {
+  content: '';
   position: absolute;
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 104px;
-  z-index: 8;
+  top: 0.75em;
+  width: var(--space-4);
+  height: 1px;
+  background: var(--color-accent-water);
+}
+
+/* -- Три цифры в ряд ------------------------------------------------- */
+
+.cases__metrics {
+  margin: 0;
+  padding: var(--space-5) 0 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+  border-top: 1px solid var(--color-border-on-dark);
+}
+
+.cases__metric {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.cases__metric-v {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-water);
+}
+
+.cases__metric-l {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-dark-faint);
+}
+
+/* -- Два фото -------------------------------------------------------- */
+
+.cases__photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+/* Пропорции 4:3 держит сама фигура, все шесть файлов в assets/cases сняты
+   ровно 4:3, так что object-fit: cover их не режет; object-position из поля
+   focus страхует замену на файл других пропорций. */
+.cases__photo {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-neutral-900);
+  border: 1px solid var(--color-border-on-dark);
+}
+
+.cases__photo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Правка тона отдельного снимка, а не всего ряда: общий фильтр испортил бы
+   те фото, которые в тон уже попадают. Класс вешает js/cases.js по полю
+   tone у записи фото. Значения подобраны по замеру: остальные снимки в
+   наборе живут на контрасте sd 50-60 и насыщенности 50-60.
+
+   --lift: 03-main.jpg — сталь на сером бетоне, самый плоский и глухой кадр
+   в наборе (sd 45, sat 30). Поднимает до sd 51 / sat 36. */
+.cases__photo-img--lift {
+  filter: saturate(1.12) contrast(1.08) brightness(1.05);
+}
+
+/* --calm: 02-second.jpg — студийный снимок пульта, красный и зелёный
+   заметно ярче соседей (sat 87 против 50-59). Гасит до sat 79. */
+.cases__photo-img--calm {
+  filter: saturate(0.85) brightness(0.97);
+}
+
+.cases__photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--color-neutral-950), transparent 62%);
+  opacity: 0.9;
   pointer-events: none;
 }
 
-.cs-folder__body {
+.cases__photo-cap {
   position: absolute;
-  inset: auto 0 0 0;
-  height: 74px;
-  background: linear-gradient(180deg, var(--color-bg-dark-mid), var(--color-neutral-950));
-  border-top: 1px solid var(--color-border-on-dark);
-  box-shadow: 0 -18px 40px -10px rgba(4, 10, 20, 0.9);
-}
-
-.cs-folder__inner {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 74px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 clamp(var(--space-5), 4vw, var(--space-9));
-  font-family: var(--font-family-mono);
-  font-size: 11px;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-on-dark-faint);
-}
-
-.cs-folder__rest {
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-3);
+  z-index: 1;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
   color: var(--color-text-on-dark-muted);
 }
 
-.cs-tabs {
-  position: absolute;
-  left: clamp(var(--space-5), 4vw, var(--space-9));
-  bottom: 74px;
-  display: flex;
-  gap: 4px;
-  pointer-events: auto;
+/* --sheet: 03-second.jpg — не снимок, а чертёж на белом листе (js/cases.js
+   ставит класс по полю sheet). Здесь cover запрещён: у краёв стоят размеры,
+   и при обрезке они уходят за кадр — только contain. Подложка белая в тон
+   самого листа, чтобы поля от contain не давали шва, поля внутренние —
+   чертёж не упирается в край, а снизу под подпись оставлено место.
+   Рамка в тон светлых поверхностей сайта: без неё лист на тёмной карточке
+   обрывается в чёрное. Сам чертёж не тронут — ни фильтра, ни кропа.
+
+   Блок стоит ниже базовых .cases__photo::after и .cases__photo-cap
+   намеренно: у переопределения ::after та же специфичность, что у базового
+   правила, и порядок здесь единственное, что решает. */
+.cases__photo--sheet {
+  background: var(--color-white);
+  border-color: var(--color-border-on-light);
 }
 
-.cs-tab {
-  position: relative;
-  width: 52px;
-  height: 30px;
-  background: var(--color-neutral-950);
-  border: 1px solid var(--color-border-on-dark);
-  border-bottom: none;
-  color: var(--color-text-on-dark-faint);
+.cases__photo--sheet .cases__photo-img {
+  object-fit: contain;
+  padding: var(--space-4) var(--space-4) var(--space-7);
+}
+
+/* Тёмный градиент под подпись на белом листе стал бы грязным пятном. */
+.cases__photo--sheet::after {
+  background: none;
+}
+
+/* Подпись на белом листе. Приглушённый текст сайта (#6b7a8f) дал бы на
+   белом 4,1:1 — для кегля подписи это ниже AA, поэтому здесь основной
+   тёмный: на светлых поверхностях сайта он и так рабочий. */
+.cases__photo--sheet .cases__photo-cap {
+  color: var(--color-text-on-light);
+}
+
+/* ==========================================================
+   10.3 Счётчик и полоса прогресса — только под мобильной лентой
+   ========================================================== */
+
+.cases__progress {
+  display: none;
+}
+
+.cases__count {
+  margin: 0;
   font-family: var(--font-family-mono);
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform var(--duration-hover-in) var(--ease-soft),
-    color var(--duration-hover-in) var(--ease-soft),
-    background var(--duration-hover-in) var(--ease-soft);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-on-dark-faint);
 }
 
-@media (hover: hover) {
-  .cs-tab:hover {
-    color: var(--color-text-on-dark);
+.cases__bar {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  background: var(--color-border-on-dark);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.cases__bar i {
+  position: absolute;
+  inset: 0;
+  width: calc(100% / var(--n, 3));
+  background: var(--color-accent-cta);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform var(--duration-toggle) var(--ease-in-out-soft);
+}
+
+/* ==========================================================
+   10.4 Строка и кнопка под блоком (docs/cases.md)
+   ========================================================== */
+
+.cases__cta {
+  margin-top: var(--space-9);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.cases__cta-text {
+  margin: 0;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body);
+  color: var(--color-text-on-dark-muted);
+}
+
+/* ==========================================================
+   10.5 Мобильный < 900px (docs/mobile-spec.md §2-§3, docs/motion-spec.md,
+   «Блок кейсов — переключение», часть «Мобильный»).
+
+   Вкладок нет: их работу берёт на себя сама лента. Карточки лежат
+   горизонтально, scroll-snap останавливает ленту ровно на карточке,
+   следующая выглядывает справа на 16% — это единственный сигнал, что
+   кейсов несколько, поэтому ширина карточки считается от него, а не
+   наоборот. Листание — нативный скролл: своих обработчиков touch в
+   ленте нет (js/cases.js вешает их только на десктопной ширине).
+
+   Токены движения (--rise 14px, --blur 4px, --stagger 50ms) приходят
+   из css/tokens.css — там один общий @media на :root, анимации здесь
+   не дублируются.
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  .cases__board {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .cases__tabs {
+    display: none;
+  }
+
+  .cases__stage {
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Быстрый свайп не должен перепрыгивать через кейс: каждая карточка —
+       обязательная остановка. */
+    scroll-snap-stop: always;
+    /* Лента листается сама по себе и не тянет за собой страницу:
+       на краю ленты жест не уходит в горизонтальный скролл документа. */
+    overscroll-behavior-x: contain;
+    /* Лента идёт от края до края экрана, но первая карточка встаёт по
+       той же вертикали, что и текст секции. */
+    margin-inline: calc(var(--layout-edge-padding) * -1);
+    padding-inline: var(--layout-edge-padding);
+    /* Без этого scroll-snap притягивает край карточки к краю самого
+       скроллера, а не к краю его поля: лента останавливалась на
+       scrollLeft: 20px, первая карточка вставала вплотную к краю экрана
+       и текст в ней обрезался слева. Отступ прокрутки повторяет
+       padding-inline — карточка встаёт по той же вертикали, что и
+       заголовок секции, ради чего эта пара margin/padding и заведена. */
+    scroll-padding-inline: var(--layout-edge-padding);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cases__stage::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Ширина карточки подобрана так, чтобы следующая начиналась ровно на
+     84% ширины экрана — то есть выглядывала справа на 16%. Остановка
+     ленты приходится ровно на карточку: между двумя кейсами лента не
+     замирает. */
+  .cases__card {
+    flex: 0 0 calc(84vw - var(--layout-edge-padding) - var(--space-4));
+    min-width: 0;
+    scroll-snap-align: start;
+    /* Одна колонка: номер, заголовок, «Было», «Что сделали», цифры, фото.
+       Порядок тот же, что на десктопе, — переставлять нечего. */
+    gap: var(--space-5);
+    padding-top: var(--space-5);
+  }
+
+  .cases__card-title {
+    /* На 360px заголовок кейса не длиннее трёх строк. */
+    font-size: clamp(1.375rem, 1.1rem + 2.4vw, 1.625rem);
+    max-width: none;
+  }
+
+  .cases__before,
+  .cases__done {
+    max-width: none;
+  }
+
+  .cases__done {
+    gap: var(--space-2);
+  }
+
+  /* Три цифры остаются в ряд, пока помещаются без переноса: до 900px
+     карточка ещё широкая (на 768px ≈ 600px, треть ≈ 190px при «700 000 ₽»
+     в 24px ≈ 115px). На телефоне ряд рассыпается — см. блок 560px ниже. */
+  .cases__metrics {
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+  }
+
+  .cases__metric-v {
+    font-size: var(--font-size-h4);
+  }
+
+  /* Пропорции 4:3 держит сама фигура, файлы сняты ровно 4:3, так что
+     cover ничего не режет и не растягивает; чертёж идёт на contain. */
+  .cases__photos {
+    gap: var(--space-4);
+  }
+
+  /* Лист с чертежом на телефоне уже, поля вокруг него ужимаются, иначе от
+     самого чертежа мало что остаётся. */
+  .cases__photo--sheet .cases__photo-img {
+    padding: var(--space-3) var(--space-3) var(--space-6);
+  }
+
+  /* -- Счётчик и полоса прогресса под лентой ------------------------- */
+
+  .cases__progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+
+  .cases__count {
+    /* Моноширинный с tabular-nums: «1 / 3» не дёргается при смене цифры. */
+    flex: 0 0 auto;
+    font-size: var(--font-size-small);
+    color: var(--color-text-on-dark-muted);
+  }
+
+  /* Полоса идёт вместе с лентой, а не перескакивает по остановкам:
+     --p (0…1) пишет js/cases.js из scrollLeft на каждом кадре, поэтому
+     своей анимации у полосы здесь нет. */
+  .cases__bar i {
+    transform: translateX(calc(var(--p, 0) * (var(--n, 3) - 1) * 100%));
+    transition: none;
+  }
+
+  /* -- Строка и кнопка под блоком ------------------------------------ */
+
+  .cases__cta {
+    margin-top: var(--space-7);
+    display: grid;
+    gap: var(--space-4);
+    justify-items: stretch;
+  }
+
+  .cases__cta-text {
+    font-size: var(--font-size-body);
+  }
+
+  .cases__cta .btn {
+    width: 100%;
   }
 }
 
-.cs-tab__fill {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 2px;
-  background: var(--color-accent-cta);
-  /* scaleX, а не width: js/cases.js пишет заливку каждый кадр. */
-  width: 100%;
-  transform-origin: left center;
-  transform: scaleX(0);
-}
-
-.cs-tab.is-active {
-  background: var(--color-bg-dark-edge);
-  color: var(--color-text-on-dark);
-  transform: translateY(-7px);
-}
-
-.cs-tab:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-/* -- Мобильная / reduced-motion раскладка: сцена становится потоком
-   обычных блоков, sticky и папка отключаются (js/cases.js добавляет
-   .is-static на .cs-cases при prefers-reduced-motion или ширине
-   меньше 900px — см. docs/motion-spec.md, восемь запретов, п.8). ------- */
-
-.cs-cases.is-static .cs-track {
-  height: auto;
-}
-
-.cs-cases.is-static .cs-pin {
-  position: static;
-  height: auto;
-  overflow: visible;
-  padding-bottom: var(--space-9);
-}
-
-.cs-cases.is-static .cs-head {
-  display: none;
-}
-
-.cs-cases.is-static .cs-stage {
-  position: static;
-  display: block;
-  padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
-}
-
-.cs-cases.is-static .cs-doc {
-  position: static;
-  width: 100%;
-  margin: 0 0 var(--space-6);
-}
-
-.cs-cases.is-static .cs-doc__inner {
-  transform: none !important;
-  opacity: 1 !important;
-  filter: none !important;
-  height: auto;
-  box-shadow: var(--shadow-md);
-}
-
-.cs-cases.is-static .cs-doc__photo-img {
-  transform: none !important;
-}
-
-.cs-cases.is-static .cs-doc__body {
-  grid-template-columns: 1fr;
-}
-
-.cs-cases.is-static .cs-doc__photo {
-  height: 210px;
-  border-right: none;
-  border-bottom: 1px solid var(--color-border-on-light);
-}
-
-.cs-cases.is-static .cs-rail__fill {
-  transform: scaleX(1) !important;
-}
-
-.cs-cases.is-static [data-line] {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-.cs-cases.is-static .cs-folder,
-.cs-cases.is-static .cs-counter {
-  display: none;
-}
-
-@media (max-width: 1000px) {
-  .cs-doc__body {
+/* Узкий телефон: в треть карточки (≈86px на 390px) «700 000 ₽» без
+   переноса не встаёт, а фото в два столбца становится меньше собственной
+   подписи. И то и другое разворачивается в колонку: номер, заголовок,
+   «Было», «Что сделали», три цифры друг под другом, затем фото. */
+@media (max-width: 559.98px) {
+  .cases__metrics {
     grid-template-columns: 1fr;
   }
 
-  .cs-doc__photo {
-    display: none;
+  .cases__photos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================
+   10.6 prefers-reduced-motion: смена кейса мгновенная, цифры сразу
+   в конечном значении (запрет №8 — конечное состояние, не отключённая
+   страница).
+   ========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .cases__part,
+  .cases__card.is-shown .cases__part {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+
+  .cases__num-cur,
+  .cases__card.is-shown .cases__num-cur {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .cases__line,
+  .cases__card.is-shown .cases__line {
+    transform: scaleX(1) !important;
+    transition: none !important;
+  }
+
+  .cases__mark,
+  .cases__bar i {
+    transition: none !important;
   }
 }
 
@@ -3064,26 +4277,21 @@ h1, h2, h3, h4, h5 {
 .cv-anim {
   opacity: 0;
   transform: translateY(var(--reveal-rise));
-  filter: blur(6px);
 }
 
 .cv-panel.is-in .cv-anim {
   opacity: 1;
   transform: none;
-  filter: blur(0);
   transition: opacity var(--duration-slow) var(--ease-out-soft),
-    transform var(--duration-slow) var(--ease-out-soft),
-    filter var(--duration-slow) var(--ease-out-soft);
+    transform var(--duration-slow) var(--ease-out-soft);
   transition-delay: var(--d, 0ms);
 }
 
 .cv-panel.is-out .cv-anim {
   opacity: 0;
   transform: translateY(calc(-1 * var(--reveal-rise) / 2));
-  filter: blur(4px);
   transition: opacity var(--duration-fast) var(--ease-soft),
-    transform var(--duration-fast) var(--ease-soft),
-    filter var(--duration-fast) var(--ease-soft);
+    transform var(--duration-fast) var(--ease-soft);
 }
 
 .cv-claims {
@@ -3114,7 +4322,58 @@ h1, h2, h3, h4, h5 {
   max-width: 44ch;
 }
 
-@media (min-width: 768px) {
+/* ==========================================================
+   11.1 «ЧТО ВОЗИМ» НА ТЕЛЕФОНЕ (docs/mobile-spec.md §7)
+
+   Вкладки — горизонтальная лента со scroll-snap; у правого края
+   затемнение-подсказка, что лента листается. Активная вкладка
+   подтягивается в видимую область (js/categories.js).
+
+   Прежде у .cv-cat стояла width: 100%, и в ленту помещалась ровно одна
+   вкладка: следующая выглядывала белым полем и читалась не как
+   «листается», а как пустая ячейка.
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  .cv-cats {
+    scroll-snap-type: x mandatory;
+  }
+
+  .cv-cat {
+    /* по содержимому, а не во всю ленту */
+    width: auto;
+    scroll-snap-align: start;
+    min-height: 44px;
+  }
+
+  /* Подсказка о прокрутке. Псевдоэлемент — отдельная ячейка той же
+     строки сетки, что и лента: так он берёт её высоту сам, без
+     зашитого в пиксели значения. Лента прокручивается под ним. */
+  .cv-board {
+    position: relative;
+  }
+
+  .cv-board::after {
+    content: '';
+    grid-row: 1;
+    grid-column: 1;
+    justify-self: end;
+    align-self: stretch;
+    width: 40px;
+    pointer-events: none;
+    background: linear-gradient(
+      to left,
+      var(--color-surface-light),
+      rgba(255, 255, 255, 0)
+    );
+  }
+}
+
+/* Брейкпоинт сведён с 768px к 900px (docs/mobile-spec.md §1: в коде
+   только 900px и 560px). На планшете вертикально лента вкладок остаётся
+   лентой — это и есть «промежуточная раскладка». Десктопная раскладка
+   с вкладками колонкой слева начинается там же, где и была. */
+@media (min-width: 900px) {
   .cv-board {
     grid-template-columns: minmax(220px, 32%) 1fr;
   }
@@ -3238,6 +4497,32 @@ h1, h2, h3, h4, h5 {
   }
 }
 
+/* На телефоне колонка одна, и «вдвое шире» превращается в ничто: все
+   карточки одинаковые. Первую выделяем тем, чем можно в одной колонке, —
+   кеглем, иконкой и плотностью (docs/mobile-spec.md §7: «карточка
+   „Своя команда в Китае“ первая и визуально крупнее остальных»). */
+@media (max-width: 559.98px) {
+  .proof__list {
+    gap: var(--space-4);
+  }
+
+  .proof-item:first-child {
+    padding: var(--space-6) var(--space-5);
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border-on-light);
+  }
+
+  .proof-item:first-child p {
+    font-size: var(--font-size-body);
+  }
+
+  .proof-item:first-child svg {
+    width: 2.75rem;
+    height: 2.75rem;
+    background: var(--color-bg-light-alt);
+  }
+}
+
 .proof__caption {
   margin-top: var(--space-6);
   text-align: center;
@@ -3261,11 +4546,17 @@ h1, h2, h3, h4, h5 {
   gap: var(--space-3);
 }
 
+/* contain: layout paint — раскрытие пункта не должно пересчитывать
+   раскладку соседей и всей страницы. Без него каждый кадр перехода
+   0fr → 1fr давал Layout на весь документ (в замере под CPU 4x — до
+   78ms на кадр). Containment замыкает пересчёт внутри пункта; меняется
+   только его собственная высота. */
 .faq-item {
   background: var(--color-surface-light);
   border: 1px solid var(--color-border-on-light);
   border-radius: var(--radius-lg);
   padding: var(--space-5) var(--space-6);
+  contain: layout paint;
 }
 
 .faq-item summary {
@@ -3292,7 +4583,7 @@ h1, h2, h3, h4, h5 {
   border-right: 2px solid var(--color-text-on-light-faint);
   border-bottom: 2px solid var(--color-text-on-light-faint);
   transform: rotate(45deg);
-  transition: transform var(--duration-toggle) var(--ease-in-out-soft);
+  transition: transform var(--duration-accordion) var(--ease-out-soft);
 }
 
 /* Полный разворот на 180° (45deg → -135deg), а не четверть оборота —
@@ -3310,20 +4601,70 @@ h1, h2, h3, h4, h5 {
 .faq-item__content {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-toggle) var(--ease-in-out-soft);
+  transition: grid-template-rows var(--duration-accordion) var(--ease-out-soft);
 }
 
 .faq-item__content.is-open {
   grid-template-rows: 1fr;
 }
 
+/* Текст ответа: только opacity и подъём на 6px. Никакого filter: blur —
+   расфокус абзаца шириной в колонку перерисовывается каждый кадр и
+   складывается с и без того недешёвым переходом высоты. */
 .faq-item__content > p {
   overflow: hidden;
   min-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity var(--duration-accordion) var(--ease-out-soft),
+    transform var(--duration-accordion) var(--ease-out-soft);
   padding-top: var(--space-4);
   font-size: var(--font-size-small);
   line-height: var(--line-height-body);
   color: var(--color-text-on-light-muted);
+}
+
+.faq-item__content.is-open > p {
+  opacity: 1;
+  transform: none;
+}
+
+/* ==========================================================
+   13.1 ВОПРОСЫ НА ТЕЛЕФОНЕ (docs/mobile-spec.md §7)
+
+   Было: поля лежали на .faq-item, а <summary> оставался высотой в одну
+   строку текста — 27px. Палец, попавший в отступ карточки, не открывал
+   ничего. Теперь вертикальные поля несёт сам <summary>, а боковые
+   возвращаются ему отрицательным margin: зона нажатия — вся строка
+   вопроса, не меньше 56px.
+
+   Стрелка прижата к верхнему краю: при вопросе в две строки
+   выравнивание по центру уводило её на середину и подпирало текст.
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  .faq-item {
+    padding: 0 var(--space-5);
+  }
+
+  .faq-item summary {
+    align-items: flex-start;
+    min-height: 56px;
+    padding-block: var(--space-4);
+    margin-inline: calc(var(--space-5) * -1);
+    padding-inline: var(--space-5);
+  }
+
+  .faq-item summary::after {
+    /* по первой строке вопроса, а не по центру блока */
+    margin-top: 0.42em;
+  }
+
+  /* Вертикальные поля ушли с карточки — ответу нужен свой нижний
+     отступ, иначе он упирается в рамку. */
+  .faq-item__content > p {
+    padding-bottom: var(--space-5);
+  }
 }
 
 /* ==========================================================
@@ -3384,15 +4725,19 @@ h1, h2, h3, h4, h5 {
   background: var(--color-glass-bg-on-dark);
   border: 1px solid var(--color-glass-border-on-dark);
   border-radius: var(--radius-md);
-  backdrop-filter: var(--blur-glass-sm) var(--saturate-glass);
-  -webkit-backdrop-filter: var(--blur-glass-sm) var(--saturate-glass);
+  /* backdrop-filter снят — см. .glass-panel. */
   font-size: var(--font-size-small);
   transition: background var(--duration-fast) var(--ease-soft);
 }
 
-.final-cta__contact:hover,
 .final-cta__contact:focus-visible {
   background: var(--color-glass-bg-on-dark-strong);
+}
+
+@media (hover: hover) {
+  .final-cta__contact:hover {
+    background: var(--color-glass-bg-on-dark-strong);
+  }
 }
 
 .final-cta__panel {
@@ -3409,12 +4754,25 @@ h1, h2, h3, h4, h5 {
 }
 
 .form-field--on-dark input,
+.form-field--on-dark select,
 .form-field--on-dark textarea {
   /* background-color, а не сокращённый background — иначе он сбросит
      background-image (подчёркивание фокуса) из базового правила .form-field. */
   background-color: var(--color-glass-bg-on-dark);
   background-image: linear-gradient(var(--color-accent-water), var(--color-accent-water));
   border: 1px solid var(--color-glass-border-on-dark);
+  color: var(--color-text-on-dark);
+}
+
+/* Выпадающий список рисует система, а не страница: без color-scheme он
+   раскрывается светлым и белый текст опций пропадает на белом фоне.
+   Явный фон у <option> — для браузеров, которые color-scheme игнорируют. */
+.form-field--on-dark select {
+  color-scheme: dark;
+}
+
+.form-field--on-dark select option {
+  background-color: var(--color-bg-dark-base);
   color: var(--color-text-on-dark);
 }
 
@@ -3539,6 +4897,58 @@ h1, h2, h3, h4, h5 {
 
   .final-cta__panel {
     flex: 0 0 46%;
+  }
+}
+
+/* ==========================================================
+   14.1 ЗАЯВКА И ФУТЕР НА ТЕЛЕФОНЕ (docs/mobile-spec.md §7)
+   ========================================================== */
+
+@media (max-width: 899.98px) {
+  /* Поле при фокусе не должно уезжать под клавиатуру. 120px — запас на
+     клавиатуру iOS поверх поля, которое браузер подводит к нижнему краю
+     окна. Свойство работает и при браузерном доскролле к полю, и при
+     нашем собственном scrollIntoView. */
+  .final-cta__form .form-field,
+  .final-cta__form input,
+  .final-cta__form select,
+  .final-cta__form textarea {
+    scroll-margin-bottom: 120px;
+  }
+
+  /* Кнопка отправки на всю ширину (§7). */
+  .final-cta__submit {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Контакты: строка целиком кликабельна, зона нажатия 44px. */
+  .final-cta__contact {
+    display: flex;
+    min-height: 44px;
+  }
+
+  /* Футер — одна колонка, всё по левому краю. */
+  .final-cta__footnote {
+    text-align: left;
+  }
+
+  .final-cta__lede {
+    max-width: none;
+  }
+
+  /* §2: заголовок секции на 390px не больше трёх строк. Самый длинный
+     на странице — здесь, 45 знаков, и кеглем h1 он разъезжался на
+     четыре. Остальные заголовки в три строки укладываются и так. */
+  .final-cta__title {
+    font-size: clamp(28px, 7.6vw, 38px);
+  }
+}
+
+@media (max-width: 559.98px) {
+  /* Стеклянная панель формы: 40/32 по бокам оставляли полю 280px. */
+  .final-cta__panel {
+    padding: var(--space-6) var(--space-5);
   }
 }
 
@@ -3747,5 +5157,77 @@ body.edit-mode [data-edit-id]:focus {
   .appearance-panel {
     left: var(--space-4);
     bottom: var(--space-4);
+  }
+}
+
+/* ==========================================================
+   16. НИЖНЯЯ ПЛАВАЮЩАЯ КНОПКА — ТОЛЬКО ТЕЛЕФОН
+   docs/mobile-spec.md §5.
+
+   Кнопка «Оставить заявку» во всю ширину, прибитая к низу экрана.
+   Появляется после хиро, прячется, когда в зоне видимости форма заявки
+   или футер: перекрывать собственную цель кнопка не должна. Состояние
+   ведёт js/site-header.js (класс is-on), здесь — только вид и движение.
+
+   Движение по тем же токенам, что и всё остальное: 360ms
+   (--duration-toggle = --t-2) на --ease-out-soft (= --e-out). Новых
+   токенов не заводим. Анимируются только transform и opacity.
+   ========================================================== */
+
+.cta-dock {
+  position: fixed;
+  left: var(--layout-edge-padding);
+  right: var(--layout-edge-padding);
+  /* env() сам по себе 0 там, где выреза нет, — отдельного правила для
+     «обычных» телефонов не нужно. */
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-cta);
+  color: var(--color-white);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+
+  opacity: 0;
+  transform: translateY(calc(100% + var(--space-6)));
+  pointer-events: none;
+  transition: opacity var(--duration-toggle) var(--ease-out-soft),
+    transform var(--duration-toggle) var(--ease-out-soft);
+}
+
+.cta-dock.is-on {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Ниже 900px кнопки нет вовсе: на десктопе есть кнопка в шапке и она
+   всегда на виду. Атрибут hidden снимает js/site-header.js — без JS
+   кнопка не появится, и это правильно: показывать её умеет только он. */
+@media (min-width: 900px) {
+  .cta-dock {
+    display: none;
+  }
+}
+
+/* Кнопка не должна закрывать содержимое последней видимой секции.
+   Запас — высота кнопки (52px) плюс её отступ снизу и safe-area. */
+@media (max-width: 899.98px) {
+  .faq {
+    padding-bottom: calc(var(--space-section-y) + 52px + var(--space-4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-dock {
+    transition: none;
   }
 }

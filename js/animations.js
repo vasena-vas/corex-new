@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — слой анимации (GSAP 3 + ScrollTrigger) для всех секций,
+  COREX — слой анимации (GSAP 3 + ScrollTrigger) для всех секций,
   КРОМЕ Hero. Владеет: всеми таймлайнами, ScrollTrigger-инстансами,
   scrub-логикой. Выставляет: инициализацию, читающую разметку через
   атрибуты `data-animate` (расставлены тикетом 02, см. interfaces.md →
@@ -36,6 +36,20 @@
   var ScrollTrigger = window.ScrollTrigger;
   gsap.registerPlugin(ScrollTrigger);
 
+  /* limitCallbacks: колбэки триггера зовутся только при реальной смене
+     состояния, а не на каждом кадре прокрутки.
+
+     Отдельно к этому: десять из двенадцати триггеров ниже — одноразовые
+     появления (start: 'top 8x%', без scrub). У них выставлен once: true,
+     и ScrollTrigger убивает их сразу после срабатывания. По умолчанию
+     (toggleActions 'play none none none') они тоже играли один раз, но
+     оставались в списке и пересчитывались на каждом кадре прокрутки до
+     конца жизни страницы — а в замере прокрутки скрипты были самой
+     дорогой строкой. Видимое поведение не меняется: как играли один раз
+     при входе и не отыгрывали назад, так и играют. Scrub-триггеров это
+     не касается — они живут всю страницу по определению. */
+  ScrollTrigger.config({ limitCallbacks: true });
+
   /* ==========================================================
      ПЛАШКИ ПОД HERO — ведомость из 4 значений. Авторский акцент: линия
      "прилетает" из-под шва Hero (scaleX), а числовые значения
@@ -51,7 +65,7 @@
       return;
     }
 
-    var tl = gsap.timeline({ scrollTrigger: { trigger: section, start: 'top 85%' } });
+    var tl = gsap.timeline({ scrollTrigger: { trigger: section, start: 'top 85%', once: true } });
 
     if (rule) {
       tl.fromTo(rule, { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: 'power2.out' });
@@ -76,6 +90,14 @@
       var target = parseInt(match[1], 10);
       var rest = original.slice(match[1].length);
       var proxy = { n: 0 };
+      /* onUpdate у GSAP приходит раз в кадр, но Math.round на плавной
+         кривой почти всегда даёт то же число, что и в прошлом кадре.
+         Присваивание textContent тем же значением всё равно сбрасывает
+         разметку текста и заставляет пересчитать строку. Поэтому пишем
+         только когда цифра действительно сменилась; ширина цифр у
+         .hero-stats__value уже зафиксирована tabular-nums, так что
+         смена не двигает соседей. */
+      var shownN = -1;
       tl.to(
         proxy,
         {
@@ -83,7 +105,12 @@
           duration: 0.9, // --duration-stat-count, easeOutExpo — см. docs/motion-spec.md
           ease: 'expo.out',
           onUpdate: function () {
-            valueEl.textContent = Math.round(proxy.n) + rest;
+            var v = Math.round(proxy.n);
+            if (v === shownN) {
+              return;
+            }
+            shownN = v;
+            valueEl.textContent = v + rest;
           },
           onComplete: function () {
             valueEl.textContent = original;
@@ -119,12 +146,20 @@
     var prefix = original.slice(0, match.index);
     var suffix = match[2];
     var proxy = { n: 0 };
+    /* Та же защита, что и у плашек под Hero: писать textContent только
+       на смене цифры, а не каждый кадр. */
+    var shownN = -1;
     gsap.to(proxy, {
       n: target,
       duration: duration,
       ease: 'power1.out',
       onUpdate: function () {
-        el.textContent = prefix + Math.round(proxy.n) + suffix;
+        var v = Math.round(proxy.n);
+        if (v === shownN) {
+          return;
+        }
+        shownN = v;
+        el.textContent = prefix + v + suffix;
       },
       onComplete: function () {
         el.textContent = original;
@@ -162,7 +197,7 @@
           y: 10,
           duration: 0.35,
           ease: 'power2.out',
-          scrollTrigger: { trigger: group, start: 'top 80%' }
+          scrollTrigger: { trigger: group, start: 'top 80%', once: true }
         });
       }
 
@@ -189,7 +224,7 @@
             duration: 1.2, // --duration-reveal-line
             ease: 'power3.out',
             delay: delay,
-            scrollTrigger: { trigger: group, start: 'top 80%' },
+            scrollTrigger: { trigger: group, start: 'top 80%', once: true },
             onStart: function () {
               countTimelineValue(valueEl, days[i], 1.2);
             }
@@ -215,7 +250,7 @@
             duration: 0.9,
             ease: 'power3.out',
             stagger: 0.1,
-            scrollTrigger: { trigger: overlap, start: 'top 85%' }
+            scrollTrigger: { trigger: overlap, start: 'top 85%', once: true }
           }
         );
       }
@@ -236,14 +271,15 @@
       scale: 0.97,
       duration: 0.7,
       ease: 'power2.out',
-      scrollTrigger: { trigger: panel, start: 'top 78%' }
+      scrollTrigger: { trigger: panel, start: 'top 78%', once: true }
     });
   }
 
   /* ==========================================================
-     СЕКЦИЯ 5 — кейсы (папка с документами): своей GSAP-анимации не
-     имеет — сцена целиком на собственном scroll+rAF цикле, без GSAP
-     (js/cases.js, тот же приём, что у Hero в js/hero-panorama.js).
+     СЕКЦИЯ 5 — кейсы: своей GSAP-анимации не имеет. Шапка, вкладки и
+     строка под блоком появляются общим .reveal (js/reveal.js), а
+     переключение кейсов ведёт js/cases.js — вручную, без скролла и
+     без GSAP (docs/motion-spec.md, «Блок кейсов — переключение»).
      ========================================================== */
 
   /* ==========================================================
@@ -267,7 +303,7 @@
       duration: 0.5,
       ease: 'power2.out',
       stagger: 0.1,
-      scrollTrigger: { trigger: '.proof__list', start: 'top 84%' }
+      scrollTrigger: { trigger: '.proof__list', start: 'top 84%', once: true }
     });
   }
 
@@ -291,7 +327,7 @@
       stagger: function (i) {
         return Math.min(i, 5) * 0.06;
       },
-      scrollTrigger: { trigger: '.faq__list', start: 'top 84%' }
+      scrollTrigger: { trigger: '.faq__list', start: 'top 84%', once: true }
     });
   }
 
@@ -334,7 +370,7 @@
         scale: 0.97,
         duration: 0.7,
         ease: 'power2.out',
-        scrollTrigger: { trigger: panel, start: 'top 82%' }
+        scrollTrigger: { trigger: panel, start: 'top 82%', once: true }
       });
     }
 
@@ -345,7 +381,7 @@
         duration: 0.5,
         ease: 'power2.out',
         stagger: 0.1,
-        scrollTrigger: { trigger: contacts, start: 'top 85%' }
+        scrollTrigger: { trigger: contacts, start: 'top 85%', once: true }
       });
     } else if (contacts) {
       gsap.from(contacts, {
@@ -353,7 +389,7 @@
         y: 20,
         duration: 0.6,
         ease: 'power2.out',
-        scrollTrigger: { trigger: contacts, start: 'top 85%' }
+        scrollTrigger: { trigger: contacts, start: 'top 85%', once: true }
       });
     }
   }

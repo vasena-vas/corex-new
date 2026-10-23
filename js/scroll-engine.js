@@ -1,5 +1,5 @@
 /**
- * Corex-Trade — единый планировщик scroll-driven сцен.
+ * COREX — единый планировщик scroll-driven сцен.
  *
  * Заменяет js/scroll-ticker.js. Отличия, ради которых он и написан:
  *

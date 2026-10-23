@@ -1,5 +1,5 @@
 /*
-  Corex-Trade — блок «Что возим»: картотека категорий (секция 6).
+  COREX — блок «Что возим»: картотека категорий (секция 6).
   Владеет: переключением категории в #cvCats/#cvPanel и подменой
   содержимого панели по данным CATS. Имена категорий остаются в разметке
   (редактируются через data-edit-id, см. js/inline-editor.js) — сюда
@@ -91,6 +91,25 @@
     );
   }
 
+  /* Активная вкладка подтягивается в видимую часть ленты
+     (docs/mobile-spec.md §7). Нужно только на телефоне: с 768px вкладки
+     стоят колонкой и прокручивать нечего — там scrollWidth равен
+     clientWidth, и условие ниже само отсекает лишнюю работу.
+
+     Стрелками с клавиатуры активная вкладка тоже меняется, так что это
+     ещё и починка фокуса, уехавшего за край ленты. */
+  function scrollTabIntoView(btn) {
+    if (!btn || cats.scrollWidth <= cats.clientWidth + 1) {
+      return;
+    }
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var left = btn.offsetLeft - (cats.clientWidth - btn.offsetWidth) / 2;
+    cats.scrollTo({
+      left: Math.max(0, left),
+      behavior: reduce ? 'auto' : 'smooth'
+    });
+  }
+
   function paint(i) {
     panel.classList.remove('is-out');
     panel.innerHTML = markup(CATS[i], i);
@@ -110,6 +129,8 @@
       b.classList.toggle('is-active', j === i);
       b.setAttribute('aria-selected', j === i ? 'true' : 'false');
     });
+
+    scrollTabIntoView(buttons[i]);
 
     if (first) {
       paint(i);

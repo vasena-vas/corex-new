@@ -1,6 +1,6 @@
 /*
-  Corex-Trade — блок «Без нас»: схема связей (секция 2).
-  Владеет: переключением #coverage между «как обычно» и «с Corex-Trade»
+  COREX — блок «Без нас»: схема связей (секция 2).
+  Владеет: переключением #coverage между «как обычно» и «с COREX»
   (сегментный контрол в шапке схемы, счётчик 7→1, список исполнителей)
   и покадровой анимацией SVG-схемы — плашки едут между двумя наборами
   координат за 950мс по easeOutExpo, связи перерисовываются вслед за
@@ -46,7 +46,7 @@
   var COLOR_LINK_PEER = cssVar('--color-border-on-light-strong');
   var COLOR_LINK_COREX = cssVar('--color-blue-200');
 
-  /* [подпись, x/y «как обычно», x/y «с Corex-Trade»] — координаты
+  /* [подпись, x/y «как обычно», x/y «с COREX»] — координаты
      центра плашки, геометрия сцены из docs/ref-bez-nas.html. */
   var NODES = [
     ['Посредник', 300, 46, 438, 58],
@@ -63,6 +63,50 @@
     ['y', 0], ['y', 1], ['y', 2], ['y', 3], ['y', 4], ['y', 5], ['y', 6],
     [0, 1], [2, 1], [3, 5], [4, 5], [5, 6]
   ];
+
+  /* -- Вертикальная версия схемы (docs/mobile-spec.md §7) ---------------
+     Горизонтальную схему на телефон ужимать нельзя: 620 единиц вьюбокса
+     в 320 пикселях экрана дают подписи по 6-7px. Поэтому вторая
+     геометрия, портретная: подрядчики столбиком, линии сходятся вниз к
+     одному договору.
+
+     Это второй набор координат, а не второй <svg>: рисование, анимация
+     перехода, подсветка строк и связь со списком у обеих схем одни и те
+     же — в двух разметках пришлось бы держать два экземпляра всего
+     движка и синхронизировать их руками. Подставляется набор по
+     брейкпоинту, как и требует спека, только переключается не
+     видимость, а геометрия.
+
+     Вьюбокс шириной 320 выбран из требования «минимальный размер текста
+     в SVG после масштабирования — 12px»: подпись набрана 13 единицами
+     (.bn-chip text), на 360px экрана схема получает ~318px ширины, то
+     есть масштаб ~0.99 и кегль ~12.9px. Более широкий вьюбокс увёл бы
+     подписи под порог. */
+  /* Во втором состоянии колонка не выстраивается в одну вертикаль, а
+     сужается книзу: при общем x у всех семи связи ложатся друг на друга
+     в одну прямую и схождение перестаёт читаться как схождение. Разлёт
+     убывает от верхней плашки к нижней — линии видимо сбегаются в
+     договор. */
+  var NODES_V = [
+    ['Посредник', 96, 30, 120, 30],
+    ['Торговый агент', 224, 88, 198, 88],
+    ['Инспекция', 96, 146, 130, 146],
+    ['Сертификация', 224, 204, 190, 204],
+    ['Документы', 96, 262, 140, 262],
+    ['Таможня', 224, 320, 180, 320],
+    ['Перевозка', 96, 378, 158, 378]
+  ];
+  /* «Вы» внизу, договор — над ним: в состоянии «как обычно» семь связей
+     веером уходят вверх мимо пустого места, где потом встанет договор,
+     в состоянии «с COREX» они собираются в него. */
+  var YOU_V = [160, 596];
+  var COREX_V = [160, 496];
+
+  var GEO_H = { nodes: NODES, you: YOU, corex: COREX, vb: '0 0 620 470', vertical: false };
+  var GEO_V = { nodes: NODES_V, you: YOU_V, corex: COREX_V, vb: '0 0 320 640', vertical: true };
+
+  var VERT = window.matchMedia('(max-width: 899.98px)');
+  var GEO = VERT.matches ? GEO_V : GEO_H;
 
   var NS = 'http://www.w3.org/2000/svg';
   var mk = function (tag, attrs) {
@@ -98,7 +142,7 @@
   }
 
   var youEl = chip('Вы', 'you');
-  var corexEl = chip('Corex-Trade', 'corex');
+  var corexEl = chip('COREX', 'corex');
   var nodeEls = NODES.map(function (n) {
     return chip(n[0], 'n');
   });
@@ -132,41 +176,70 @@
   var start = 0;
 
   var cur = function (i) {
-    return [lerp(NODES[i][1], NODES[i][3], t), lerp(NODES[i][2], NODES[i][4], t)];
+    var n = GEO.nodes[i];
+    return [lerp(n[1], n[3], t), lerp(n[2], n[4], t)];
   };
 
+  /* Высота плашки фиксирована в chip(); для вертикальной схемы связь
+     выходит из верхней или нижней грани, а не из боковой. */
+  var CHIP_H = 32;
+
   function edge(c, w, to) {
+    if (GEO.vertical) {
+      return to[1] >= c[1] ? [c[0], c[1] + CHIP_H / 2] : [c[0], c[1] - CHIP_H / 2];
+    }
     return to[0] >= c[0] ? [c[0] + w / 2, c[1]] : [c[0] - w / 2, c[1]];
   }
   function curve(a, b) {
+    if (GEO.vertical) {
+      var dy = Math.max(46, Math.abs(b[1] - a[1]) * 0.46) * (b[1] >= a[1] ? 1 : -1);
+      return 'M' + a[0] + ' ' + a[1] + ' C' + a[0] + ' ' + (a[1] + dy) + ',' + b[0] + ' ' + (b[1] - dy) + ',' + b[0] + ' ' + b[1];
+    }
     var dx = Math.max(46, Math.abs(b[0] - a[0]) * 0.46) * (b[0] >= a[0] ? 1 : -1);
     return 'M' + a[0] + ' ' + a[1] + ' C' + (a[0] + dx) + ' ' + a[1] + ',' + (b[0] - dx) + ' ' + b[1] + ',' + b[0] + ' ' + b[1];
   }
 
   function draw() {
-    var P = NODES.map(function (_, i) {
+    var YOU_P = GEO.you;
+    var COREX_P = GEO.corex;
+    var P = GEO.nodes.map(function (_, i) {
       return cur(i);
     });
     nodeEls.forEach(function (el, i) {
       el.setAttribute('transform', 'translate(' + P[i][0] + ',' + P[i][1] + ')');
     });
-    youEl.setAttribute('transform', 'translate(' + YOU[0] + ',' + YOU[1] + ')');
-    corexEl.setAttribute('transform', 'translate(' + COREX[0] + ',' + COREX[1] + ') scale(' + lerp(0.72, 1, t).toFixed(3) + ')');
+    youEl.setAttribute('transform', 'translate(' + YOU_P[0] + ',' + YOU_P[1] + ')');
+    corexEl.setAttribute('transform', 'translate(' + COREX_P[0] + ',' + COREX_P[1] + ') scale(' + lerp(0.72, 1, t).toFixed(3) + ')');
     corexEl.setAttribute('opacity', t.toFixed(3));
 
     LINKS_A.forEach(function (lk, i) {
-      var fromC = lk[0] === 'y' ? YOU : P[lk[0]];
+      var fromC = lk[0] === 'y' ? YOU_P : P[lk[0]];
       var fromW = lk[0] === 'y' ? youEl.__w : nodeEls[lk[0]].__w;
       var toC = P[lk[1]];
       pathsA[i].setAttribute('d', curve(edge(fromC, fromW, toC), edge(toC, nodeEls[lk[1]].__w, fromC)));
     });
     linksA.setAttribute('opacity', (1 - t).toFixed(3));
 
-    pathYC.setAttribute('d', curve(edge(YOU, youEl.__w, COREX), edge(COREX, corexEl.__w, YOU)));
+    pathYC.setAttribute('d', curve(edge(YOU_P, youEl.__w, COREX_P), edge(COREX_P, corexEl.__w, YOU_P)));
     pathsB.forEach(function (p, i) {
-      p.setAttribute('d', curve(edge(COREX, corexEl.__w, P[i]), edge(P[i], nodeEls[i].__w, COREX)));
+      p.setAttribute('d', curve(edge(COREX_P, corexEl.__w, P[i]), edge(P[i], nodeEls[i].__w, COREX_P)));
     });
     linksB.setAttribute('opacity', t.toFixed(3));
+  }
+
+  /* Смена геометрии при пересечении 900px: подставить вьюбокс и
+     перерисовать в текущем состоянии t. Анимацию не трогаем — переход
+     между «как обычно» и «с COREX» к ширине окна отношения не
+     имеет. */
+  function applyGeometry() {
+    GEO = VERT.matches ? GEO_V : GEO_H;
+    svg.setAttribute('viewBox', GEO.vb);
+    draw();
+  }
+
+  applyGeometry();
+  if (VERT.addEventListener) {
+    VERT.addEventListener('change', applyGeometry);
   }
 
   function anim(ts) {
@@ -205,7 +278,7 @@
     swA.classList.toggle('is-on', to === 0);
     swB.classList.toggle('is-on', to === 1);
     if (modeLabel) {
-      modeLabel.textContent = to === 1 ? 'с Corex-Trade' : 'как обычно';
+      modeLabel.textContent = to === 1 ? 'с COREX' : 'как обычно';
     }
     section.classList.toggle('is-corex', to === 1);
     if (tallyNum) {
